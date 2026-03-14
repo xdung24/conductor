@@ -1,0 +1,87 @@
+{{ define "monitor_detail.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .Monitor.Name }} — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+    <a href="/" style="color:#64748b;">&#8592; Back</a>
+    <h1 class="page-title" style="margin-bottom:0;">{{ .Monitor.Name }}</h1>
+    <a href="/monitors/{{ .Monitor.ID }}/edit" class="btn btn-ghost">Edit</a>
+</div>
+
+<div class="stats">
+    <div class="stat-card">
+        <div class="stat-label">24h Uptime</div>
+        <div class="stat-value {{ if ge .Uptime24h 99.0 }}stat-up{{ else if ge .Uptime24h 80.0 }}stat-neutral{{ else }}stat-down{{ end }}">
+            {{ printf "%.2f" .Uptime24h }}%
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">30d Uptime</div>
+        <div class="stat-value {{ if ge .Uptime30d 99.0 }}stat-up{{ else if ge .Uptime30d 80.0 }}stat-neutral{{ else }}stat-down{{ end }}">
+            {{ printf "%.2f" .Uptime30d }}%
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Type</div>
+        <div class="stat-value stat-neutral" style="font-size:1rem; text-transform:uppercase;">{{ .Monitor.Type }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Interval</div>
+        <div class="stat-value stat-neutral" style="font-size:1rem;">{{ .Monitor.IntervalSeconds }}s</div>
+    </div>
+</div>
+
+<div class="card">
+    <p class="text-muted" style="margin-bottom:0.5rem;">URL / Target</p>
+    <p>{{ .Monitor.URL }}</p>
+</div>
+
+<div class="card" style="padding:0;">
+    <div style="padding:1rem 1.5rem; border-bottom:1px solid #334155;">
+        <strong>Last 100 checks</strong>
+    </div>
+    {{ if not .Beats }}
+    <div style="padding:2rem; text-align:center; color:#64748b;">No data yet — first check pending.</div>
+    {{ else }}
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .Beats }}
+        <tr>
+            <td class="text-muted">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</td>
+            <td>
+                {{ if eq .Status 1 }}
+                    <span class="badge badge-up">UP</span>
+                {{ else }}
+                    <span class="badge badge-down">DOWN</span>
+                {{ end }}
+            </td>
+            <td>{{ .LatencyMs }}ms</td>
+            <td class="text-muted">{{ .Message }}</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    {{ end }}
+</div>
+
+    </div>
+</body>
+</html>
+{{ end }}

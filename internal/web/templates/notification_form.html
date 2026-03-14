@@ -1,0 +1,151 @@
+{{ define "notification_form.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ if .IsNew }}New Notification{{ else }}Edit Notification{{ end }} — Service Monitor</title>
+    {{ template "styles" . }}
+    <style>
+        .provider-fields { display: none; }
+        .provider-fields.active { display: block; }
+    </style>
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<h1 class="page-title">{{ if .IsNew }}Add Notification Provider{{ else }}Edit Notification Provider{{ end }}</h1>
+
+{{ if .Error }}
+<div class="alert alert-danger">{{ .Error }}</div>
+{{ end }}
+
+<div class="card" style="max-width:600px;">
+    <form method="POST" action="{{ if .IsNew }}/notifications{{ else }}/notifications/{{ .Notification.ID }}{{ end }}">
+
+        <div class="form-group">
+            <label for="name">Display Name</label>
+            <input class="form-control" type="text" id="name" name="name"
+                   value="{{ .Notification.Name }}" placeholder="My Slack Webhook" required />
+        </div>
+
+        <div class="form-group">
+            <label for="type">Provider Type</label>
+            <select class="form-control" id="type" name="type" onchange="showFields(this.value)">
+                <option value="">— select type —</option>
+                <option value="webhook"  {{ if eq .Notification.Type "webhook"  }}selected{{ end }}>��� Webhook (Slack, Discord, custom)</option>
+                <option value="telegram" {{ if eq .Notification.Type "telegram" }}selected{{ end }}>✈️ Telegram</option>
+                <option value="email"    {{ if eq .Notification.Type "email"    }}selected{{ end }}>✉️ Email / SMTP</option>
+            </select>
+        </div>
+
+        <!-- Webhook fields -->
+        <div id="fields-webhook" class="provider-fields">
+            <div class="form-group">
+                <label for="cfg_url">Webhook URL</label>
+                <input class="form-control" type="url" id="cfg_url" name="cfg_url"
+                       value="{{ index .Config "url" }}"
+                       placeholder="https://hooks.slack.com/services/..." />
+            </div>
+            <div class="form-group">
+                <label for="cfg_secret">Secret (optional — sent as X-Webhook-Secret header)</label>
+                <input class="form-control" type="text" id="cfg_secret" name="cfg_secret"
+                       value="{{ index .Config "secret" }}" />
+            </div>
+        </div>
+
+        <!-- Telegram fields -->
+        <div id="fields-telegram" class="provider-fields">
+            <div class="form-group">
+                <label for="cfg_bot_token">Bot Token</label>
+                <input class="form-control" type="text" id="cfg_bot_token" name="cfg_bot_token"
+                       value="{{ index .Config "bot_token" }}"
+                       placeholder="123456789:AABBccdd..." />
+            </div>
+            <div class="form-group">
+                <label for="cfg_chat_id">Chat ID</label>
+                <input class="form-control" type="text" id="cfg_chat_id" name="cfg_chat_id"
+                       value="{{ index .Config "chat_id" }}"
+                       placeholder="-1001234567890" />
+            </div>
+        </div>
+
+        <!-- Email fields -->
+        <div id="fields-email" class="provider-fields">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label for="cfg_host">SMTP Host</label>
+                    <input class="form-control" type="text" id="cfg_host" name="cfg_host"
+                           value="{{ index .Config "host" }}" placeholder="smtp.gmail.com" />
+                </div>
+                <div class="form-group">
+                    <label for="cfg_port">Port</label>
+                    <input class="form-control" type="text" id="cfg_port" name="cfg_port"
+                           value="{{ index .Config "port" }}" placeholder="465" />
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label for="cfg_username">Username</label>
+                    <input class="form-control" type="text" id="cfg_username" name="cfg_username"
+                           value="{{ index .Config "username" }}" />
+                </div>
+                <div class="form-group">
+                    <label for="cfg_password">Password</label>
+                    <input class="form-control" type="password" id="cfg_password" name="cfg_password"
+                           value="{{ index .Config "password" }}" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="cfg_from">From Address</label>
+                <input class="form-control" type="email" id="cfg_from" name="cfg_from"
+                       value="{{ index .Config "from" }}" placeholder="monitor@example.com" />
+            </div>
+            <div class="form-group">
+                <label for="cfg_to">To Address(es) <span class="text-muted">(comma-separated)</span></label>
+                <input class="form-control" type="text" id="cfg_to" name="cfg_to"
+                       value="{{ index .Config "to" }}" placeholder="admin@example.com, ops@example.com" />
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                    <input type="checkbox" id="cfg_tls" name="cfg_tls" value="true"
+                           {{ if ne (index .Config "tls") "false" }}checked{{ end }} />
+                    Use TLS (port 465) — uncheck for STARTTLS (port 587)
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top:1rem;">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="active" value="on"
+                       {{ if .Notification.Active }}checked{{ end }} />
+                Active
+            </label>
+        </div>
+
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+            <button type="submit" class="btn btn-primary">
+                {{ if .IsNew }}Create Provider{{ else }}Save Changes{{ end }}
+            </button>
+            <a href="/notifications" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+    </div>
+    <script>
+        function showFields(type) {
+            document.querySelectorAll('.provider-fields').forEach(el => el.classList.remove('active'));
+            if (type) {
+                const el = document.getElementById('fields-' + type);
+                if (el) el.classList.add('active');
+            }
+        }
+        // Show fields for current type on page load
+        const currentType = document.getElementById('type').value;
+        if (currentType) showFields(currentType);
+    </script>
+</body>
+</html>
+{{ end }}

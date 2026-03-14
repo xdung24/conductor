@@ -1,0 +1,20 @@
+{{ define "error.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    <div style="max-width:500px; margin:4rem auto; padding:1rem; text-align:center;">
+        <div class="card">
+            <h1 style="font-size:2rem; margin-bottom:1rem; color:#ef4444;">Oops!</h1>
+            <p class="text-muted">{{ .Error }}</p>
+            <a href="/" class="btn btn-ghost" style="margin-top:1.5rem;">&#8592; Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}

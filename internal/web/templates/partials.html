@@ -1,0 +1,97 @@
+{{ define "styles" }}
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .navbar {
+        background: #1e293b;
+        border-bottom: 1px solid #334155;
+        padding: 0 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+    }
+    .navbar-brand { font-weight: 700; font-size: 1.1rem; color: #f1f5f9; }
+    .navbar-brand span { color: #38bdf8; }
+    .navbar-actions a { color: #94a3b8; font-size: 0.875rem; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+
+    .card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .btn {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.5rem 1rem; border-radius: 0.5rem; border: none;
+        cursor: pointer; font-size: 0.875rem; font-weight: 500;
+        text-decoration: none; transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+    .btn-warning { background: #f59e0b; color: #000; }
+    .btn-success { background: #10b981; color: #fff; }
+    .btn-ghost   { background: #334155; color: #e2e8f0; }
+
+    .badge {
+        display: inline-block; padding: 0.2rem 0.6rem;
+        border-radius: 9999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-up   { background: #064e3b; color: #34d399; }
+    .badge-down { background: #450a0a; color: #f87171; }
+    .badge-unknown { background: #1e2a40; color: #94a3b8; }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.4rem; font-size: 0.875rem; color: #94a3b8; }
+    .form-control {
+        width: 100%; padding: 0.6rem 0.8rem;
+        background: #0f172a; border: 1px solid #334155;
+        border-radius: 0.5rem; color: #e2e8f0; font-size: 0.95rem;
+    }
+    .form-control:focus { outline: 2px solid #3b82f6; border-color: #3b82f6; }
+    select.form-control option { background: #1e293b; }
+
+    .alert { padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+    .alert-danger { background: #450a0a; border: 1px solid #ef4444; color: #fca5a5; }
+
+    .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #f1f5f9; }
+    .text-muted { color: #64748b; font-size: 0.875rem; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #1e293b; }
+    th { color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .stat-card {
+        flex: 1; min-width: 140px;
+        background: #1e293b; border: 1px solid #334155;
+        border-radius: 0.75rem; padding: 1rem;
+    }
+    .stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem; }
+    .stat-up   { color: #34d399; }
+    .stat-down { color: #f87171; }
+    .stat-neutral { color: #60a5fa; }
+</style>
+{{ end }}
+
+{{ define "navbar" }}
+<nav class="navbar">
+    <a class="navbar-brand" href="/">&#x2665; <span>Service</span>Monitor</a>
+    <div class="navbar-actions" style="display:flex; gap:1.5rem; align-items:center;">
+        <a href="/" style="color:#94a3b8; font-size:0.875rem;">Monitors</a>
+        <a href="/notifications" style="color:#94a3b8; font-size:0.875rem;">Notifications</a>
+        <a href="/logout" style="color:#94a3b8; font-size:0.875rem;">Logout</a>
+    </div>
+</nav>
+{{ end }}

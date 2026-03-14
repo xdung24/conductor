@@ -1,0 +1,107 @@
+{{ define "dashboard.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin-bottom:0;">Monitors</h1>
+    <a href="/monitors/new" class="btn btn-primary">+ Add Monitor</a>
+</div>
+
+{{ if not .Monitors }}
+<div class="card" style="text-align:center; padding:3rem;">
+    <p style="color:#64748b; margin-bottom:1rem;">No monitors yet.</p>
+    <a href="/monitors/new" class="btn btn-primary">Add your first monitor</a>
+</div>
+{{ else }}
+
+{{ $up := 0 }}{{ $down := 0 }}{{ $paused := 0 }}
+{{ range .Monitors }}
+    {{ if not .Active }}{{ $paused = add $paused 1 }}
+    {{ else if .LastStatus }}
+        {{ if eq (deref .LastStatus) 1 }}{{ $up = add $up 1 }}{{ else }}{{ $down = add $down 1 }}{{ end }}
+    {{ end }}
+{{ end }}
+
+<div class="stats">
+    <div class="stat-card"><div class="stat-label">Up</div><div class="stat-value stat-up">{{ $up }}</div></div>
+    <div class="stat-card"><div class="stat-label">Down</div><div class="stat-value stat-down">{{ $down }}</div></div>
+    <div class="stat-card"><div class="stat-label">Paused</div><div class="stat-value stat-neutral">{{ $paused }}</div></div>
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value stat-neutral">{{ len .Monitors }}</div></div>
+</div>
+
+<div class="card" style="padding:0;">
+<table>
+    <thead>
+        <tr>
+            <th>Status</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>URL</th>
+            <th>Latency</th>
+            <th>24h Uptime</th>
+            <th>30d Uptime</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {{ range .Monitors }}
+    <tr>
+        <td>
+            {{ if not .Active }}
+                <span class="badge badge-unknown">Paused</span>
+            {{ else if .LastStatus }}
+                {{ if eq (deref .LastStatus) 1 }}
+                    <span class="badge badge-up">UP</span>
+                {{ else }}
+                    <span class="badge badge-down">DOWN</span>
+                {{ end }}
+            {{ else }}
+                <span class="badge badge-unknown">Pending</span>
+            {{ end }}
+        </td>
+        <td><a href="/monitors/{{ .ID }}">{{ .Name }}</a></td>
+        <td><span style="color:#94a3b8;">{{ .Type }}</span></td>
+        <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <span class="text-muted">{{ .URL }}</span>
+        </td>
+        <td>
+            {{ if .LastLatency }}{{ deref .LastLatency }}ms{{ else }}&mdash;{{ end }}
+        </td>
+        <td>{{ printf "%.1f" .Uptime24h }}%</td>
+        <td>{{ printf "%.1f" .Uptime30d }}%</td>
+        <td>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                <a href="/monitors/{{ .ID }}/edit" class="btn btn-ghost" style="padding:0.3rem 0.6rem;font-size:0.8rem;">Edit</a>
+                {{ if .Active }}
+                <form method="POST" action="/monitors/{{ .ID }}/pause" style="display:inline;">
+                    <button class="btn btn-warning" style="padding:0.3rem 0.6rem;font-size:0.8rem;">Pause</button>
+                </form>
+                {{ else }}
+                <form method="POST" action="/monitors/{{ .ID }}/resume" style="display:inline;">
+                    <button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.8rem;">Resume</button>
+                </form>
+                {{ end }}
+                <form method="POST" action="/monitors/{{ .ID }}/delete"
+                      onsubmit="return confirm('Delete {{ .Name }}?')" style="display:inline;">
+                    <button class="btn btn-danger" style="padding:0.3rem 0.6rem;font-size:0.8rem;">Delete</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>
+</div>
+{{ end }}
+    </div>
+</body>
+</html>
+{{ end }}

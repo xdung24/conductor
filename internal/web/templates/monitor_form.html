@@ -1,0 +1,104 @@
+{{ define "monitor_form.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ if .IsNew }}New Monitor{{ else }}Edit Monitor{{ end }} — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<h1 class="page-title">{{ if .IsNew }}Add Monitor{{ else }}Edit Monitor{{ end }}</h1>
+
+{{ if .Error }}
+<div class="alert alert-danger">{{ .Error }}</div>
+{{ end }}
+
+<div class="card" style="max-width:600px;">
+    <form method="POST" action="{{ if .IsNew }}/monitors{{ else }}/monitors/{{ .Monitor.ID }}{{ end }}">
+        <div class="form-group">
+            <label for="name">Display Name</label>
+            <input class="form-control" type="text" id="name" name="name"
+                   value="{{ .Monitor.Name }}" placeholder="My Website" required />
+        </div>
+        <div class="form-group">
+            <label for="type">Monitor Type</label>
+            <select class="form-control" id="type" name="type">
+                <option value="http"  {{ if eq .Monitor.Type "http"  }}selected{{ end }}>HTTP / HTTPS</option>
+                <option value="tcp"   {{ if eq .Monitor.Type "tcp"   }}selected{{ end }}>TCP Port</option>
+                <option value="ping"  {{ if eq .Monitor.Type "ping"  }}selected{{ end }}>Ping (Host)</option>
+                <option value="push"  {{ if eq .Monitor.Type "push"  }}selected{{ end }}>Push (Heartbeat)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="url">URL / Host / Address</label>
+            <input class="form-control" type="text" id="url" name="url"
+                   value="{{ .Monitor.URL }}"
+                   placeholder="https://example.com  or  host:port  or  hostname" required />
+        </div>
+        <div class="form-group">
+            <label for="dns_server">Custom DNS Server <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+            <input class="form-control" type="text" id="dns_server" name="dns_server"
+                   value="{{ .Monitor.DNSServer }}"
+                   placeholder="e.g. 1.1.1.1  or  8.8.8.8:53  or  192.168.1.1" />
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                Leave blank to use the system default DNS. Useful for testing DNS propagation or internal resolvers.
+            </small>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+            <div class="form-group">
+                <label for="interval_seconds">Check Interval (s)</label>
+                <input class="form-control" type="number" id="interval_seconds" name="interval_seconds"
+                       value="{{ .Monitor.IntervalSeconds }}" min="20" />
+            </div>
+            <div class="form-group">
+                <label for="timeout_seconds">Timeout (s)</label>
+                <input class="form-control" type="number" id="timeout_seconds" name="timeout_seconds"
+                       value="{{ .Monitor.TimeoutSeconds }}" min="1" />
+            </div>
+            <div class="form-group">
+                <label for="retries">Retries</label>
+                <input class="form-control" type="number" id="retries" name="retries"
+                       value="{{ .Monitor.Retries }}" min="0" max="10" />
+            </div>
+        </div>
+        {{ if .AllNotifs }}
+        <div class="form-group" style="margin-top:1rem;">
+            <label style="display:block; margin-bottom:0.5rem;">Notifications</label>
+            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:0.5rem;">Alert when monitor changes state.</p>
+            {{ range .AllNotifs }}
+            <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; cursor:pointer; font-size:0.875rem;">
+                <input type="checkbox" name="notifications" value="{{ .ID }}"
+                    {{ if index $.LinkedNotifIDs .ID }}checked{{ end }}
+                    style="width:1rem; height:1rem; accent-color:#6366f1;" />
+                <span style="color:#e2e8f0;">{{ .Name }}</span>
+                <span style="color:#94a3b8; font-size:0.75rem;">({{ .Type }})</span>
+            </label>
+            {{ end }}
+        </div>
+        {{ end }}
+        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+            <button type="submit" class="btn btn-primary">
+                {{ if .IsNew }}Create Monitor{{ else }}Save Changes{{ end }}
+            </button>
+            <a href="/" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{{ if not .AllNotifs }}
+<div style="max-width:600px; margin-top:0.75rem;">
+    <p style="font-size:0.8rem; color:#64748b;">
+        No notification providers configured yet.
+        <a href="/notifications/new" style="color:#6366f1;">Add one here.</a>
+    </p>
+</div>
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

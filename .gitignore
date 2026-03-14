@@ -1,0 +1,15 @@
+# Binaries
+service-monitor
+service-monitor.exe
+
+# Data
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
