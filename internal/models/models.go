@@ -23,7 +23,9 @@ type Monitor struct {
 	TimeoutSeconds  int         `db:"timeout_seconds"`
 	Active          bool        `db:"active"`
 	Retries         int         `db:"retries"`
-	DNSServer       string      `db:"dns_server"` // optional custom DNS server (host:port)
+	DNSServer       string      `db:"dns_server"`      // optional custom DNS resolver (host[:port])
+	DNSRecordType   string      `db:"dns_record_type"` // A, AAAA, CNAME, MX, NS, TXT, PTR (DNS type only)
+	DNSExpected     string      `db:"dns_expected"`    // optional expected value to match in answer
 	CreatedAt       time.Time   `db:"created_at"`
 	UpdatedAt       time.Time   `db:"updated_at"`
 

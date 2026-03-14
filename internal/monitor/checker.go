@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/xdung24/service-monitor/internal/models"
@@ -42,6 +43,8 @@ func Run(ctx context.Context, m *models.Monitor) Result {
 
 func checkerFor(m *models.Monitor) Checker {
 	switch m.Type {
+	case models.MonitorTypeDNS:
+		return &DNSChecker{}
 	case models.MonitorTypeTCP:
 		return &TCPChecker{}
 	case models.MonitorTypePing:
@@ -172,4 +175,97 @@ func (c *PingChecker) Check(ctx context.Context, m *models.Monitor) Result {
 	}
 	conn.Close()
 	return Result{Status: 1, LatencyMs: latency, Message: "reachable (port 80)"}
+}
+
+// ---------------------------------------------------------------------------
+// DNS checker
+// ---------------------------------------------------------------------------
+
+// DNSChecker resolves a DNS record for the configured domain and optionally
+// validates that an answer contains the expected value.
+type DNSChecker struct{}
+
+// Check performs a DNS lookup and records status + latency.
+func (c *DNSChecker) Check(ctx context.Context, m *models.Monitor) Result {
+	resolver := resolverFor(m)
+	if resolver == nil {
+		resolver = net.DefaultResolver
+	}
+
+	recordType := strings.ToUpper(m.DNSRecordType)
+	if recordType == "" {
+		recordType = "A"
+	}
+
+	start := time.Now()
+	var answers []string
+	var lookupErr error
+
+	switch recordType {
+	case "A":
+		ips, e := resolver.LookupIPAddr(ctx, m.URL)
+		for _, ip := range ips {
+			if ip.IP.To4() != nil {
+				answers = append(answers, ip.IP.String())
+			}
+		}
+		lookupErr = e
+	case "AAAA":
+		ips, e := resolver.LookupIPAddr(ctx, m.URL)
+		for _, ip := range ips {
+			if ip.IP.To4() == nil && ip.IP.To16() != nil {
+				answers = append(answers, ip.IP.String())
+			}
+		}
+		lookupErr = e
+	case "CNAME":
+		cname, e := resolver.LookupCNAME(ctx, m.URL)
+		if e == nil {
+			answers = []string{strings.TrimSuffix(cname, ".")}
+		}
+		lookupErr = e
+	case "MX":
+		mxs, e := resolver.LookupMX(ctx, m.URL)
+		for _, mx := range mxs {
+			answers = append(answers, fmt.Sprintf("%s (pri %d)", strings.TrimSuffix(mx.Host, "."), mx.Pref))
+		}
+		lookupErr = e
+	case "NS":
+		nss, e := resolver.LookupNS(ctx, m.URL)
+		for _, ns := range nss {
+			answers = append(answers, strings.TrimSuffix(ns.Host, "."))
+		}
+		lookupErr = e
+	case "TXT":
+		txts, e := resolver.LookupTXT(ctx, m.URL)
+		answers = txts
+		lookupErr = e
+	case "PTR":
+		ptrs, e := resolver.LookupAddr(ctx, m.URL)
+		for _, p := range ptrs {
+			answers = append(answers, strings.TrimSuffix(p, "."))
+		}
+		lookupErr = e
+	default:
+		return Result{Status: 0, Message: fmt.Sprintf("unsupported record type: %s", recordType)}
+	}
+
+	latency := int(time.Since(start).Milliseconds())
+	if lookupErr != nil {
+		return Result{Status: 0, LatencyMs: latency, Message: fmt.Sprintf("DNS %s lookup failed: %v", recordType, lookupErr)}
+	}
+	if len(answers) == 0 {
+		return Result{Status: 0, LatencyMs: latency, Message: fmt.Sprintf("no %s records for %s", recordType, m.URL)}
+	}
+
+	msg := fmt.Sprintf("%s %s → %s", m.URL, recordType, strings.Join(answers, ", "))
+	if m.DNSExpected != "" {
+		for _, a := range answers {
+			if strings.Contains(a, m.DNSExpected) {
+				return Result{Status: 1, LatencyMs: latency, Message: msg}
+			}
+		}
+		return Result{Status: 0, LatencyMs: latency, Message: fmt.Sprintf("expected %q not in answers: %s", m.DNSExpected, msg)}
+	}
+	return Result{Status: 1, LatencyMs: latency, Message: msg}
 }

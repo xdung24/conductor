@@ -19,7 +19,8 @@ func NewMonitorStore(db *sql.DB) *MonitorStore {
 // List returns all monitors with their latest heartbeat status.
 func (s *MonitorStore) List() ([]*Monitor, error) {
 	rows, err := s.db.Query(`
-		SELECT id, name, type, url, interval_seconds, timeout_seconds, active, retries, dns_server, created_at, updated_at
+		SELECT id, name, type, url, interval_seconds, timeout_seconds, active, retries,
+		       dns_server, dns_record_type, dns_expected, created_at, updated_at
 		FROM monitors ORDER BY id ASC
 	`)
 	if err != nil {
@@ -31,7 +32,8 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 	for rows.Next() {
 		m := &Monitor{}
 		if err := rows.Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
-			&m.TimeoutSeconds, &m.Active, &m.Retries, &m.DNSServer, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			&m.TimeoutSeconds, &m.Active, &m.Retries, &m.DNSServer,
+			&m.DNSRecordType, &m.DNSExpected, &m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
 		monitors = append(monitors, m)
@@ -43,10 +45,12 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 	m := &Monitor{}
 	err := s.db.QueryRow(`
-		SELECT id, name, type, url, interval_seconds, timeout_seconds, active, retries, dns_server, created_at, updated_at
+		SELECT id, name, type, url, interval_seconds, timeout_seconds, active, retries,
+		       dns_server, dns_record_type, dns_expected, created_at, updated_at
 		FROM monitors WHERE id = ?
 	`, id).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
-		&m.TimeoutSeconds, &m.Active, &m.Retries, &m.DNSServer, &m.CreatedAt, &m.UpdatedAt)
+		&m.TimeoutSeconds, &m.Active, &m.Retries, &m.DNSServer,
+		&m.DNSRecordType, &m.DNSExpected, &m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -57,9 +61,11 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 	now := time.Now()
 	res, err := s.db.Exec(`
-		INSERT INTO monitors (name, type, url, interval_seconds, timeout_seconds, active, retries, dns_server, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries, m.DNSServer, now, now)
+		INSERT INTO monitors (name, type, url, interval_seconds, timeout_seconds, active, retries,
+		                      dns_server, dns_record_type, dns_expected, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
+		m.DNSServer, m.DNSRecordType, m.DNSExpected, now, now)
 	if err != nil {
 		return 0, err
 	}
@@ -70,8 +76,9 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 func (s *MonitorStore) Update(m *Monitor) error {
 	_, err := s.db.Exec(`
 		UPDATE monitors SET name=?, type=?, url=?, interval_seconds=?, timeout_seconds=?,
-		active=?, retries=?, dns_server=?, updated_at=? WHERE id=?
-	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries, m.DNSServer, time.Now(), m.ID)
+		active=?, retries=?, dns_server=?, dns_record_type=?, dns_expected=?, updated_at=? WHERE id=?
+	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
+		m.DNSServer, m.DNSRecordType, m.DNSExpected, time.Now(), m.ID)
 	return err
 }
 

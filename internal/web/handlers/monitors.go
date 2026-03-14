@@ -206,6 +206,8 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 	monURL := c.PostForm("url")
 	monType := models.MonitorType(c.DefaultPostForm("type", "http"))
 	dnsServer := c.PostForm("dns_server")
+	dnsRecordType := c.DefaultPostForm("dns_record_type", "A")
+	dnsExpected := c.PostForm("dns_expected")
 
 	// Always build a partial monitor so error paths never get nil.
 	m := &models.Monitor{
@@ -217,6 +219,8 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		Active:          true,
 		Retries:         retries,
 		DNSServer:       dnsServer,
+		DNSRecordType:   dnsRecordType,
+		DNSExpected:     dnsExpected,
 	}
 	if name == "" {
 		return m, &formError{"name is required"}

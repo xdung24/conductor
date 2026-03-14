@@ -26,10 +26,11 @@
         </div>
         <div class="form-group">
             <label for="type">Monitor Type</label>
-            <select class="form-control" id="type" name="type">
+            <select class="form-control" id="type" name="type" onchange="toggleDNSFields()">
                 <option value="http"  {{ if eq .Monitor.Type "http"  }}selected{{ end }}>HTTP / HTTPS</option>
                 <option value="tcp"   {{ if eq .Monitor.Type "tcp"   }}selected{{ end }}>TCP Port</option>
                 <option value="ping"  {{ if eq .Monitor.Type "ping"  }}selected{{ end }}>Ping (Host)</option>
+                <option value="dns"   {{ if eq .Monitor.Type "dns"   }}selected{{ end }}>DNS</option>
                 <option value="push"  {{ if eq .Monitor.Type "push"  }}selected{{ end }}>Push (Heartbeat)</option>
             </select>
         </div>
@@ -47,6 +48,30 @@
             <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
                 Leave blank to use the system default DNS. Useful for testing DNS propagation or internal resolvers.
             </small>
+        </div>
+        <div id="dns-fields" style="display:{{ if eq .Monitor.Type "dns" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="dns_record_type">DNS Record Type</label>
+                <select class="form-control" id="dns_record_type" name="dns_record_type">
+                    {{ $rt := .Monitor.DNSRecordType }}
+                    <option value="A"     {{ if eq $rt "A"     }}selected{{ end }}>A &nbsp;(IPv4 address)</option>
+                    <option value="AAAA"  {{ if eq $rt "AAAA"  }}selected{{ end }}>AAAA &nbsp;(IPv6 address)</option>
+                    <option value="CNAME" {{ if eq $rt "CNAME" }}selected{{ end }}>CNAME &nbsp;(canonical name)</option>
+                    <option value="MX"    {{ if eq $rt "MX"    }}selected{{ end }}>MX &nbsp;(mail exchange)</option>
+                    <option value="NS"    {{ if eq $rt "NS"    }}selected{{ end }}>NS &nbsp;(name server)</option>
+                    <option value="TXT"   {{ if eq $rt "TXT"   }}selected{{ end }}>TXT</option>
+                    <option value="PTR"   {{ if eq $rt "PTR"   }}selected{{ end }}>PTR &nbsp;(reverse lookup)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dns_expected">Expected Value <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                <input class="form-control" type="text" id="dns_expected" name="dns_expected"
+                       value="{{ .Monitor.DNSExpected }}"
+                       placeholder="e.g. 1.2.3.4  or  mail.example.com  or  v=spf1" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Leave blank to only verify the lookup succeeds. Set to flag DOWN when no answer contains this value.
+                </small>
+            </div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
             <div class="form-group">
@@ -124,5 +149,21 @@
 
     </div>
 </body>
+<script>
+function toggleDNSFields() {
+    var t = document.getElementById('type').value;
+    document.getElementById('dns-fields').style.display = t === 'dns' ? 'block' : 'none';
+    var urlInput = document.getElementById('url');
+    if (t === 'dns') {
+        urlInput.placeholder = 'Domain to query, e.g. example.com';
+    } else if (t === 'tcp') {
+        urlInput.placeholder = 'host:port, e.g. example.com:443';
+    } else if (t === 'ping') {
+        urlInput.placeholder = 'Hostname or IP, e.g. 8.8.8.8';
+    } else {
+        urlInput.placeholder = 'https://example.com  or  host:port  or  hostname';
+    }
+}
+</script>
 </html>
 {{ end }}
