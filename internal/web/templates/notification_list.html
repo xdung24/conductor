@@ -13,8 +13,22 @@
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
     <h1 class="page-title" style="margin-bottom:0;">Notifications</h1>
-    <a href="/notifications/new" class="btn btn-primary">+ Add Provider</a>
+    <div style="display:flex; gap:0.5rem;">
+        <a href="/notifications/logs" class="btn btn-ghost">View History</a>
+        <a href="/notifications/new" class="btn btn-primary">+ Add Provider</a>
+    </div>
 </div>
+
+{{ if .Tested }}
+<div style="background:#064e3b; border:1px solid #065f46; color:#34d399; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
+    ✓ Test notification sent successfully for <strong>{{ .Tested }}</strong>.
+</div>
+{{ end }}
+{{ if .FlashError }}
+<div style="background:#450a0a; border:1px solid #7f1d1d; color:#f87171; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
+    ✗ {{ .FlashError }}
+</div>
+{{ end }}
 
 {{ if not .Notifications }}
 <div class="card" style="text-align:center; padding:3rem;">
@@ -37,7 +51,7 @@
     <tr>
         <td>{{ .Name }}</td>
         <td>
-            {{ if eq .Type "webhook" }}��� Webhook
+            {{ if eq .Type "webhook" }}��� Webhook
             {{ else if eq .Type "telegram" }}✈️ Telegram
             {{ else if eq .Type "email" }}✉️ Email
             {{ else }}{{ .Type }}{{ end }}

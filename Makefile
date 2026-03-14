@@ -1,10 +1,15 @@
-BINARY   := service-monitor
+ifeq ($(OS),Windows_NT)
+    BINARY := service-monitor.exe
+else
+    BINARY := service-monitor
+endif
 MAIN     := ./cmd/server
 BUILD_FLAGS := -ldflags="-s -w"
 
 ## build: compile the binary
 .PHONY: build
 build:
+	rm -f $(BINARY)
 	go build $(BUILD_FLAGS) -o $(BINARY) $(MAIN)
 
 ## run: build and run locally

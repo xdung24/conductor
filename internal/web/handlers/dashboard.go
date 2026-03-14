@@ -23,6 +23,7 @@ type Handler struct {
 	heartbeat     *models.HeartbeatStore
 	users         *models.UserStore
 	notifications *models.NotificationStore
+	notifLogs     *models.NotificationLogStore
 }
 
 // New creates a Handler.
@@ -35,6 +36,7 @@ func New(db *sql.DB, sched *scheduler.Scheduler, cfg *config.Config) *Handler {
 		heartbeat:     models.NewHeartbeatStore(db),
 		users:         models.NewUserStore(db),
 		notifications: models.NewNotificationStore(db),
+		notifLogs:     models.NewNotificationLogStore(db),
 	}
 }
 

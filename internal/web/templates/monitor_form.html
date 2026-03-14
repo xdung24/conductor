@@ -65,21 +65,54 @@
                        value="{{ .Monitor.Retries }}" min="0" max="10" />
             </div>
         </div>
-        {{ if .AllNotifs }}
-        <div class="form-group" style="margin-top:1rem;">
-            <label style="display:block; margin-bottom:0.5rem;">Notifications</label>
-            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:0.5rem;">Alert when monitor changes state.</p>
+        <div class="form-group" style="margin-top:1.25rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+                <label style="margin-bottom:0; font-size:0.875rem; color:#94a3b8;">Notification Providers</label>
+                <a href="/notifications/new" style="font-size:0.775rem; color:#6366f1;">+ New Provider</a>
+            </div>
+            {{ if .AllNotifs }}
+            <p style="font-size:0.775rem; color:#64748b; margin-bottom:0.6rem;">Check providers to alert when this monitor changes state (UP ↔ DOWN).</p>
+            <div style="border:1px solid #334155; border-radius:0.5rem; overflow:hidden;">
             {{ range .AllNotifs }}
-            <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; cursor:pointer; font-size:0.875rem;">
+            <label style="display:flex; align-items:center; gap:0.75rem; padding:0.65rem 0.9rem; border-bottom:1px solid #1e293b; cursor:pointer; transition:background 0.1s;"
+                   onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
                 <input type="checkbox" name="notifications" value="{{ .ID }}"
                     {{ if index $.LinkedNotifIDs .ID }}checked{{ end }}
-                    style="width:1rem; height:1rem; accent-color:#6366f1;" />
-                <span style="color:#e2e8f0;">{{ .Name }}</span>
-                <span style="color:#94a3b8; font-size:0.75rem;">({{ .Type }})</span>
+                    style="width:1rem; height:1rem; flex-shrink:0; accent-color:#6366f1; cursor:pointer;" />
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                        <span style="font-size:0.875rem; color:#e2e8f0; font-weight:500;">{{ .Name }}</span>
+                        <span style="display:inline-block; padding:0.1rem 0.45rem; border-radius:9999px; font-size:0.7rem; font-weight:600;
+                            {{ if eq .Type "webhook" }}background:#1e3a5f; color:#60a5fa;
+                            {{ else if eq .Type "telegram" }}background:#1a3a2a; color:#34d399;
+                            {{ else if eq .Type "email" }}background:#3b1a1a; color:#fca5a5;
+                            {{ else }}background:#1e2a40; color:#94a3b8;
+                            {{ end }}">
+                            {{ if eq .Type "webhook" }}Webhook
+                            {{ else if eq .Type "telegram" }}Telegram
+                            {{ else if eq .Type "email" }}Email
+                            {{ else }}{{ .Type }}{{ end }}
+                        </span>
+                        {{ if not .Active }}<span style="font-size:0.7rem; color:#64748b;">(disabled)</span>{{ end }}
+                    </div>
+                    {{ $summary := index $.NotifSummaries .ID }}
+                    {{ if $summary }}
+                    <div style="font-size:0.775rem; color:#64748b; margin-top:0.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $summary }}</div>
+                    {{ end }}
+                </div>
+                <a href="/notifications/{{ .ID }}/edit" onclick="event.stopPropagation()"
+                   style="font-size:0.775rem; color:#475569; flex-shrink:0; padding:0.2rem 0.4rem; border-radius:0.3rem; border:1px solid #334155;"
+                   title="Configure provider">Edit</a>
             </label>
             {{ end }}
+            </div>
+            {{ else }}
+            <div style="border:1px dashed #334155; border-radius:0.5rem; padding:1rem; text-align:center;">
+                <p style="font-size:0.8rem; color:#64748b; margin-bottom:0.4rem;">No notification providers configured yet.</p>
+                <a href="/notifications/new" style="font-size:0.8rem; color:#6366f1;">Create your first provider →</a>
+            </div>
+            {{ end }}
         </div>
-        {{ end }}
         <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
             <button type="submit" class="btn btn-primary">
                 {{ if .IsNew }}Create Monitor{{ else }}Save Changes{{ end }}
@@ -88,15 +121,6 @@
         </div>
     </form>
 </div>
-
-{{ if not .AllNotifs }}
-<div style="max-width:600px; margin-top:0.75rem;">
-    <p style="font-size:0.8rem; color:#64748b;">
-        No notification providers configured yet.
-        <a href="/notifications/new" style="color:#6366f1;">Add one here.</a>
-    </p>
-</div>
-{{ end }}
 
     </div>
 </body>

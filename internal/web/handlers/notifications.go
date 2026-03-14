@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xdung24/service-monitor/internal/models"
@@ -18,7 +19,22 @@ func (h *Handler) NotificationList(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
 		return
 	}
-	c.HTML(http.StatusOK, "notification_list.html", gin.H{"Notifications": notifs})
+
+	// Surface flash messages set by Test/Delete redirects.
+	testedName := ""
+	if idStr := c.Query("tested"); idStr != "" {
+		if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+			if n, _ := h.notifications.Get(id); n != nil {
+				testedName = n.Name
+			}
+		}
+	}
+
+	c.HTML(http.StatusOK, "notification_list.html", gin.H{
+		"Notifications": notifs,
+		"Tested":        testedName,
+		"FlashError":    c.Query("error"),
+	})
 }
 
 // NotificationNew renders the new notification form.
@@ -27,6 +43,7 @@ func (h *Handler) NotificationNew(c *gin.Context) {
 		"Notification": &models.Notification{Active: true},
 		"IsNew":        true,
 		"Error":        "",
+		"Config":       map[string]string{},
 	})
 }
 
@@ -36,6 +53,7 @@ func (h *Handler) NotificationCreate(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "notification_form.html", gin.H{
 			"Notification": n, "IsNew": true, "Error": err.Error(),
+			"Config": notificationConfigMap(cfgJSON),
 		})
 		return
 	}
@@ -45,6 +63,7 @@ func (h *Handler) NotificationCreate(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "notification_form.html", gin.H{
 			"Notification": n, "IsNew": true, "Error": err.Error(),
+			"Config": notificationConfigMap(cfgJSON),
 		})
 		return
 	}
@@ -77,7 +96,7 @@ func (h *Handler) NotificationUpdate(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "notification_form.html", gin.H{
 			"Notification": existing, "IsNew": false, "Error": err.Error(),
-			"Config": notificationConfigMap(existing.Config),
+			"Config": notificationConfigMap(cfgJSON),
 		})
 		return
 	}
@@ -87,6 +106,7 @@ func (h *Handler) NotificationUpdate(c *gin.Context) {
 	if err := h.notifications.Update(n); err != nil {
 		c.HTML(http.StatusInternalServerError, "notification_form.html", gin.H{
 			"Notification": n, "IsNew": false, "Error": err.Error(),
+			"Config": notificationConfigMap(cfgJSON),
 		})
 		return
 	}
@@ -131,12 +151,38 @@ func (h *Handler) NotificationTest(c *gin.Context) {
 		Message:     "This is a test notification from Service Monitor.",
 	}
 
-	if err := p.Send(c.Request.Context(), cfg, testEvent); err != nil {
-		c.Redirect(http.StatusFound, "/notifications?error="+url.QueryEscape(err.Error()))
+	sendErr := p.Send(c.Request.Context(), cfg, testEvent)
+
+	// Log the test attempt.
+	errStr := ""
+	if sendErr != nil {
+		errStr = sendErr.Error()
+	}
+	_ = h.notifLogs.Insert(&models.NotificationLog{
+		NotificationID:   &n.ID,
+		MonitorName:      "[Test]",
+		NotificationName: n.Name,
+		EventStatus:      1,
+		Success:          sendErr == nil,
+		Error:            errStr,
+		CreatedAt:        time.Now().UTC(),
+	})
+
+	if sendErr != nil {
+		c.Redirect(http.StatusFound, "/notifications?error="+url.QueryEscape(sendErr.Error()))
 		return
 	}
-
 	c.Redirect(http.StatusFound, "/notifications?tested="+c.Param("id"))
+}
+
+// NotificationLogList renders the notification send history page.
+func (h *Handler) NotificationLogList(c *gin.Context) {
+	logs, err := h.notifLogs.List(200)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
+		return
+	}
+	c.HTML(http.StatusOK, "notification_log.html", gin.H{"Logs": logs})
 }
 
 // ---------------------------------------------------------------------------
@@ -158,20 +204,14 @@ func (h *Handler) getNotification(c *gin.Context) (*models.Notification, bool) {
 }
 
 // notificationFromForm parses the form, builds a Notification and returns the
-// JSON-encoded config string.
+// JSON-encoded config string. Always returns a non-nil Notification so error
+// paths in handlers can safely render the form without nil-pointer panics.
 func notificationFromForm(c *gin.Context) (*models.Notification, string, error) {
 	name := c.PostForm("name")
 	ntype := c.PostForm("type")
 	activeStr := c.PostForm("active")
 
-	if name == "" {
-		return nil, "", &formError{"name is required"}
-	}
-	if ntype == "" {
-		return nil, "", &formError{"type is required"}
-	}
-
-	// Build config map from type-specific fields.
+	// Build config map from type-specific fields first (even when empty/invalid).
 	cfg := make(map[string]string)
 	switch ntype {
 	case "webhook":
@@ -189,15 +229,24 @@ func notificationFromForm(c *gin.Context) (*models.Notification, string, error) 
 		cfg["to"] = c.PostForm("cfg_to")
 		cfg["tls"] = c.DefaultPostForm("cfg_tls", "true")
 	}
-
 	cfgBytes, _ := json.Marshal(cfg)
+	cfgJSON := string(cfgBytes)
 
-	return &models.Notification{
+	// Build the notification struct before validation so callers always get a
+	// non-nil value they can pass back to the template.
+	n := &models.Notification{
 		Name:   name,
 		Type:   ntype,
 		Active: activeStr == "on" || activeStr == "true" || activeStr == "1",
-		Config: string(cfgBytes),
-	}, string(cfgBytes), nil
+		Config: cfgJSON,
+	}
+	if name == "" {
+		return n, cfgJSON, &formError{"name is required"}
+	}
+	if ntype == "" {
+		return n, cfgJSON, &formError{"type is required"}
+	}
+	return n, cfgJSON, nil
 }
 
 // notificationConfigMap decodes the JSON config blob into a map for template rendering.

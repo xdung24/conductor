@@ -76,6 +76,7 @@ func NewRouter(db *sql.DB, sched *scheduler.Scheduler, cfg *config.Config) http.
 		auth.POST("/notifications/:id", h.NotificationUpdate)
 		auth.POST("/notifications/:id/delete", h.NotificationDelete)
 		auth.POST("/notifications/:id/test", h.NotificationTest)
+		auth.GET("/notifications/logs", h.NotificationLogList)
 	}
 
 	return r

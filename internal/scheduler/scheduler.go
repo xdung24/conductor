@@ -19,6 +19,7 @@ type Scheduler struct {
 	monitors      *models.MonitorStore
 	heartbeat     *models.HeartbeatStore
 	notifications *models.NotificationStore
+	notifLogs     *models.NotificationLogStore
 	jobs          map[int64]*job
 	mu            sync.Mutex
 	ctx           context.Context
@@ -39,6 +40,7 @@ func New(db *sql.DB) *Scheduler {
 		monitors:      models.NewMonitorStore(db),
 		heartbeat:     models.NewHeartbeatStore(db),
 		notifications: models.NewNotificationStore(db),
+		notifLogs:     models.NewNotificationLogStore(db),
 		jobs:          make(map[int64]*job),
 		ctx:           ctx,
 		cancel:        cancel,
@@ -203,7 +205,29 @@ func (s *Scheduler) maybeNotify(m *models.Monitor, result monitor.Result) {
 		Message:     result.Message,
 	}
 
-	notifier.SendAll(s.ctx, configs, event)
+	results := notifier.SendAll(s.ctx, configs, event)
+
+	now := time.Now().UTC()
+	for _, r := range results {
+		errStr := ""
+		if r.Err != nil {
+			errStr = r.Err.Error()
+		}
+		nid := r.NotifConfig.ID
+		l := &models.NotificationLog{
+			MonitorID:        &m.ID,
+			NotificationID:   &nid,
+			MonitorName:      m.Name,
+			NotificationName: r.NotifConfig.Name,
+			EventStatus:      result.Status,
+			Success:          r.Err == nil,
+			Error:            errStr,
+			CreatedAt:        now,
+		}
+		if err := s.notifLogs.Insert(l); err != nil {
+			log.Printf("scheduler: failed to insert notification log: %v", err)
+		}
+	}
 
 	if err := s.monitors.UpdateLastNotifiedStatus(m.ID, result.Status); err != nil {
 		log.Printf("scheduler: update last_notified_status for monitor %d: %v", m.ID, err)

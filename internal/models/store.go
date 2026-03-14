@@ -357,3 +357,87 @@ func (s *NotificationStore) ReplaceMonitorLinks(monitorID int64, notificationIDs
 	}
 	return tx.Commit()
 }
+
+// ---------------------------------------------------------------------------
+// NotificationLogStore
+// ---------------------------------------------------------------------------
+
+// NotificationLogStore handles notification delivery log operations.
+type NotificationLogStore struct {
+	db *sql.DB
+}
+
+// NewNotificationLogStore creates a new NotificationLogStore.
+func NewNotificationLogStore(db *sql.DB) *NotificationLogStore {
+	return &NotificationLogStore{db: db}
+}
+
+// Insert records a notification delivery attempt.
+func (s *NotificationLogStore) Insert(l *NotificationLog) error {
+	_, err := s.db.Exec(`
+		INSERT INTO notification_logs
+			(monitor_id, notification_id, monitor_name, notification_name, event_status, success, error, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, l.MonitorID, l.NotificationID, l.MonitorName, l.NotificationName,
+		l.EventStatus, l.Success, l.Error, l.CreatedAt)
+	return err
+}
+
+// List returns the most recent notification log entries (newest first).
+func (s *NotificationLogStore) List(limit int) ([]*NotificationLog, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	rows, err := s.db.Query(`
+		SELECT id, monitor_id, notification_id, monitor_name, notification_name,
+		       event_status, success, error, created_at
+		FROM notification_logs
+		ORDER BY created_at DESC
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []*NotificationLog
+	for rows.Next() {
+		l := &NotificationLog{}
+		if err := rows.Scan(&l.ID, &l.MonitorID, &l.NotificationID, &l.MonitorName,
+			&l.NotificationName, &l.EventStatus, &l.Success, &l.Error, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, rows.Err()
+}
+
+// ListForMonitor returns the most recent log entries for a specific monitor.
+func (s *NotificationLogStore) ListForMonitor(monitorID int64, limit int) ([]*NotificationLog, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	rows, err := s.db.Query(`
+		SELECT id, monitor_id, notification_id, monitor_name, notification_name,
+		       event_status, success, error, created_at
+		FROM notification_logs
+		WHERE monitor_id = ?
+		ORDER BY created_at DESC
+		LIMIT ?
+	`, monitorID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []*NotificationLog
+	for rows.Next() {
+		l := &NotificationLog{}
+		if err := rows.Scan(&l.ID, &l.MonitorID, &l.NotificationID, &l.MonitorName,
+			&l.NotificationName, &l.EventStatus, &l.Success, &l.Error, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, rows.Err()
+}

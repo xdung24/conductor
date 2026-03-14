@@ -1,0 +1,75 @@
+{{ define "notification_log.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notification History — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin-bottom:0;">Notification History</h1>
+    <a href="/notifications" class="btn btn-ghost">← Back to Providers</a>
+</div>
+
+{{ if not .Logs }}
+<div class="card" style="text-align:center; padding:3rem;">
+    <p style="color:#64748b;">No notifications have been sent yet.</p>
+    <p style="color:#64748b; font-size:0.875rem; margin-top:0.5rem;">
+        Notifications are sent automatically when a monitor changes state, or when you click <strong>Test</strong> on a provider.
+    </p>
+</div>
+{{ else }}
+<div class="card" style="padding:0; overflow:hidden;">
+<table>
+    <thead>
+        <tr>
+            <th style="width:160px;">Time</th>
+            <th>Monitor</th>
+            <th>Provider</th>
+            <th style="width:80px;">Event</th>
+            <th style="width:90px;">Result</th>
+            <th>Error</th>
+        </tr>
+    </thead>
+    <tbody>
+    {{ range .Logs }}
+    <tr>
+        <td style="color:#94a3b8; font-size:0.8rem; white-space:nowrap;">
+            {{ .CreatedAt.Format "2006-01-02 15:04:05" }}
+        </td>
+        <td style="font-size:0.875rem;">{{ .MonitorName }}</td>
+        <td style="font-size:0.875rem;">{{ .NotificationName }}</td>
+        <td>
+            {{ if eq .EventStatus 1 }}
+                <span class="badge badge-up">UP</span>
+            {{ else }}
+                <span class="badge badge-down">DOWN</span>
+            {{ end }}
+        </td>
+        <td>
+            {{ if .Success }}
+                <span class="badge badge-up">Sent</span>
+            {{ else }}
+                <span class="badge badge-down">Failed</span>
+            {{ end }}
+        </td>
+        <td style="font-size:0.8rem; color:#f87171; word-break:break-all;">
+            {{ if .Error }}<code style="background:transparent;">{{ .Error }}</code>{{ end }}
+        </td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>
+</div>
+<p style="color:#64748b; font-size:0.8rem; margin-top:0.75rem;">Showing the last 200 entries.</p>
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

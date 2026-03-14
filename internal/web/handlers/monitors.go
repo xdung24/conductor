@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
+	neturl "net/url"
 	"strconv"
 	"time"
 
@@ -18,6 +20,7 @@ func (h *Handler) MonitorNew(c *gin.Context) {
 		"Error":          "",
 		"AllNotifs":      allNotifs,
 		"LinkedNotifIDs": map[int64]bool{},
+		"NotifSummaries": notifSummaryMap(allNotifs),
 	})
 }
 
@@ -26,14 +29,22 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 	m, err := monitorFromForm(c)
 	if err != nil {
 		allNotifs, _ := h.notifications.List()
-		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{"Monitor": m, "IsNew": true, "Error": err.Error(), "AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{}})
+		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{
+			"Monitor": m, "IsNew": true, "Error": err.Error(),
+			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
+			"NotifSummaries": notifSummaryMap(allNotifs),
+		})
 		return
 	}
 
 	id, err := h.monitors.Create(m)
 	if err != nil {
 		allNotifs, _ := h.notifications.List()
-		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{"Monitor": m, "IsNew": true, "Error": err.Error(), "AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{}})
+		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{
+			"Monitor": m, "IsNew": true, "Error": err.Error(),
+			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
+			"NotifSummaries": notifSummaryMap(allNotifs),
+		})
 		return
 	}
 
@@ -80,6 +91,7 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 		"Error":          "",
 		"AllNotifs":      allNotifs,
 		"LinkedNotifIDs": linkedIDs,
+		"NotifSummaries": notifSummaryMap(allNotifs),
 	})
 }
 
@@ -98,14 +110,22 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 		for _, n := range linked {
 			linkedIDs[n.ID] = true
 		}
-		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{"Monitor": m, "IsNew": false, "Error": err.Error(), "AllNotifs": allNotifs, "LinkedNotifIDs": linkedIDs})
+		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{
+			"Monitor": m, "IsNew": false, "Error": err.Error(),
+			"AllNotifs": allNotifs, "LinkedNotifIDs": linkedIDs,
+			"NotifSummaries": notifSummaryMap(allNotifs),
+		})
 		return
 	}
 	updated.ID = m.ID
 
 	if err := h.monitors.Update(updated); err != nil {
 		allNotifs, _ := h.notifications.List()
-		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{"Monitor": updated, "IsNew": false, "Error": err.Error(), "AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{}})
+		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{
+			"Monitor": updated, "IsNew": false, "Error": err.Error(),
+			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
+			"NotifSummaries": notifSummaryMap(allNotifs),
+		})
 		return
 	}
 
@@ -183,27 +203,28 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 	}
 
 	name := c.PostForm("name")
-	url := c.PostForm("url")
+	monURL := c.PostForm("url")
 	monType := models.MonitorType(c.DefaultPostForm("type", "http"))
 	dnsServer := c.PostForm("dns_server")
 
-	if name == "" {
-		return nil, &formError{"name is required"}
-	}
-	if url == "" {
-		return nil, &formError{"url is required"}
-	}
-
-	return &models.Monitor{
+	// Always build a partial monitor so error paths never get nil.
+	m := &models.Monitor{
 		Name:            name,
 		Type:            monType,
-		URL:             url,
+		URL:             monURL,
 		IntervalSeconds: intervalSec,
 		TimeoutSeconds:  timeoutSec,
 		Active:          true,
 		Retries:         retries,
 		DNSServer:       dnsServer,
-	}, nil
+	}
+	if name == "" {
+		return m, &formError{"name is required"}
+	}
+	if monURL == "" {
+		return m, &formError{"url is required"}
+	}
+	return m, nil
 }
 
 type formError struct{ msg string }
@@ -221,4 +242,33 @@ func notifIDsFromForm(c *gin.Context) []int64 {
 		}
 	}
 	return ids
+}
+
+// notifSummaryMap returns a map of notification ID → human-readable config summary
+// (non-sensitive) for display in the monitor form.
+func notifSummaryMap(notifs []*models.Notification) map[int64]string {
+	summaries := make(map[int64]string, len(notifs))
+	for _, n := range notifs {
+		var cfg map[string]string
+		_ = json.Unmarshal([]byte(n.Config), &cfg)
+		switch n.Type {
+		case "webhook":
+			if u := cfg["url"]; u != "" {
+				if parsed, err := neturl.Parse(u); err == nil && parsed.Host != "" {
+					summaries[n.ID] = parsed.Host
+				} else {
+					summaries[n.ID] = u
+				}
+			}
+		case "telegram":
+			if id := cfg["chat_id"]; id != "" {
+				summaries[n.ID] = "Chat: " + id
+			}
+		case "email":
+			if to := cfg["to"]; to != "" {
+				summaries[n.ID] = "→ " + to
+			}
+		}
+	}
+	return summaries
 }

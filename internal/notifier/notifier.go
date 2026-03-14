@@ -39,19 +39,30 @@ var Registry = map[string]Provider{
 	"email":    &EmailProvider{},
 }
 
-// SendAll fires all active notifications linked to a monitor.
-// notifs is a slice of (type, config-JSON) pairs.
-func SendAll(ctx context.Context, notifs []NotifConfig, e Event) {
+// SendResult holds the outcome of a single provider send attempt.
+type SendResult struct {
+	NotifConfig NotifConfig
+	Err         error
+}
+
+// SendAll fires all active notifications linked to a monitor and returns one
+// SendResult per entry. Errors are logged but do not abort remaining sends.
+func SendAll(ctx context.Context, notifs []NotifConfig, e Event) []SendResult {
+	results := make([]SendResult, 0, len(notifs))
 	for _, n := range notifs {
+		r := SendResult{NotifConfig: n}
 		p, ok := Registry[n.Type]
 		if !ok {
-			log.Printf("notifier: unknown provider type %q", n.Type)
-			continue
+			r.Err = fmt.Errorf("unknown provider type %q", n.Type)
+		} else {
+			r.Err = p.Send(ctx, n.Config, e)
 		}
-		if err := p.Send(ctx, n.Config, e); err != nil {
-			log.Printf("notifier[%s]: send error for monitor %d: %v", n.Type, e.MonitorID, err)
+		if r.Err != nil {
+			log.Printf("notifier[%s]: send error for monitor %d: %v", n.Type, e.MonitorID, r.Err)
 		}
+		results = append(results, r)
 	}
+	return results
 }
 
 // NotifConfig is a decoded notification row passed to SendAll.
