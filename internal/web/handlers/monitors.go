@@ -451,6 +451,10 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 	// Push token is carried via a hidden form input so edits don't regenerate it.
 	pushToken := c.PostForm("push_token")
 
+	// Custom request fields
+	httpRequestHeaders := c.PostForm("http_request_headers")
+	httpRequestBody := c.PostForm("http_request_body")
+
 	// Response assertion fields
 	httpHeaderName := c.PostForm("http_header_name")
 	httpHeaderValue := c.PostForm("http_header_value")
@@ -498,6 +502,8 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		HTTPPassword:         httpPassword,
 		HTTPBearerToken:      httpBearerToken,
 		HTTPMaxRedirects:     httpMaxRedirects,
+		HTTPRequestHeaders:   httpRequestHeaders,
+		HTTPRequestBody:      httpRequestBody,
 		PushToken:            pushToken,
 		HTTPHeaderName:       httpHeaderName,
 		HTTPHeaderValue:      httpHeaderValue,

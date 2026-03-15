@@ -126,11 +126,30 @@ func (c *HTTPChecker) Check(ctx context.Context, m *models.Monitor) Result {
 	}
 
 	start := time.Now()
-	req, err := http.NewRequestWithContext(ctx, method, m.URL, nil)
+	var bodyReader io.Reader
+	if m.HTTPRequestBody != "" {
+		bodyReader = strings.NewReader(m.HTTPRequestBody)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, m.URL, bodyReader)
 	if err != nil {
 		return Result{Status: 0, Message: fmt.Sprintf("invalid request: %v", err)}
 	}
 	req.Header.Set("User-Agent", "service-monitor/1.0")
+
+	// Apply custom request headers (Key: Value, one per line).
+	for _, line := range strings.Split(m.HTTPRequestHeaders, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if idx := strings.Index(line, ":"); idx > 0 {
+			k := strings.TrimSpace(line[:idx])
+			v := strings.TrimSpace(line[idx+1:])
+			if k != "" {
+				req.Header.Set(k, v)
+			}
+		}
+	}
 
 	// Bearer token takes priority over HTTP basic auth.
 	if m.HTTPBearerToken != "" {

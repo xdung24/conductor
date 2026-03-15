@@ -1,18 +1,15 @@
-# .golangci.yml — golangci-lint configuration for service-monitor
+# .golangci.yml — golangci-lint v2 configuration for service-monitor
+version: "2"
 
 run:
   timeout: 5m
-  # Only analyse changed files on PRs (faster); CI runs full analysis.
-  # Configured in the workflow via --new-from-rev when needed.
 
 linters:
   enable:
-    - errcheck        # unanticipated unchecked errors
-    - gosimple        # simplify code
-    - govet           # suspicious constructs (includes printf format checks)
+    - errcheck        # unchecked errors
+    - govet           # suspicious constructs
     - ineffassign     # useless assignments
-    - staticcheck     # comprehensive static analysis
-    - unused          # unused code (funcs, vars, consts, types)
+    - staticcheck     # comprehensive static analysis (includes gosimple + unused in v2)
     - gocritic        # broad code quality suggestions
     - gochecknoinits  # flag func init() unless intentional
     - gosec           # security issues (SQL injection, SSRF, hardcoded creds…)
@@ -20,34 +17,33 @@ linters:
     - noctx           # HTTP calls without context
     - misspell        # common spelling mistakes in comments/strings
     - whitespace      # leading/trailing blank lines
-    - gofmt           # formatting (reports only — formatter not auto-applied)
 
-linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment  # not enforced — struct layout is a minor optimisation
+  settings:
+    govet:
+      enable:
+        - shadow
+        - nilness
+      disable:
+        - fieldalignment  # not enforced — struct layout is a minor optimisation
 
-  gosec:
-    excludes:
-      - G402  # TLS InsecureSkipVerify — intentional user opt-in (e.g. smtp_ignore_tls)
+    gosec:
+      excludes:
+        - G402  # TLS InsecureSkipVerify — intentional user opt-in (smtp_ignore_tls / http_ignore_tls)
 
-  gocritic:
-    disabled-checks:
-      - commentedOutCode
-      - hugeParam
+    gocritic:
+      disabled-checks:
+        - commentedOutCode
+        - hugeParam
 
-  errcheck:
-    # Ignore certain common patterns where errors are intentionally discarded.
-    exclude-functions:
-      - (net/http.ResponseWriter).Write
-      - (*database/sql.Rows).Close
+    errcheck:
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*database/sql.Rows).Close
 
-  misspell:
-    locale: US
+    misspell:
+      locale: US
 
 issues:
-  # Show all issues, not just the first 3 per linter.
   max-issues-per-linter: 0
   max-same-issues: 0
 
@@ -58,8 +54,3 @@ issues:
         - errcheck
         - gosec
         - gocritic
-
-    # Migration SQL embed files are not Go — no lint needed.
-    - path: migrations/
-      linters:
-        - all

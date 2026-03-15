@@ -51,6 +51,10 @@ type Monitor struct {
 	HTTPXPath         string `db:"http_xpath"`          // XPath expression e.g. //status
 	HTTPXPathExpected string `db:"http_xpath_expected"` // expected value; empty = just check node exists
 
+	// Custom request options (HTTP only)
+	HTTPRequestHeaders string `db:"http_request_headers"` // Key: Value lines
+	HTTPRequestBody    string `db:"http_request_body"`    // raw body for POST/PUT/PATCH
+
 	// SMTP monitor fields
 	SMTPUseTLS    bool   `db:"smtp_use_tls"`    // use implicit TLS / SMTPS (port 465)
 	SMTPIgnoreTLS bool   `db:"smtp_ignore_tls"` // skip TLS certificate verification

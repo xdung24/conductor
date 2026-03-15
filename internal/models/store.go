@@ -28,6 +28,7 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 		       http_json_path, http_json_expected, http_xpath, http_xpath_expected,
 		       smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		       notify_on_failure, notify_on_success, notify_body_chars,
+		       http_request_headers, http_request_body,
 		       created_at, updated_at
 		FROM monitors ORDER BY id ASC
 	`)
@@ -49,6 +50,7 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 			&m.HTTPJsonPath, &m.HTTPJsonExpected, &m.HTTPXPath, &m.HTTPXPathExpected,
 			&m.SMTPUseTLS, &m.SMTPIgnoreTLS, &m.SMTPUsername, &m.SMTPPassword,
 			&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
+			&m.HTTPRequestHeaders, &m.HTTPRequestBody,
 			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -70,6 +72,7 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		       http_json_path, http_json_expected, http_xpath, http_xpath_expected,
 		       smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		       notify_on_failure, notify_on_success, notify_body_chars,
+		       http_request_headers, http_request_body,
 		       created_at, updated_at
 		FROM monitors WHERE id = ?
 	`, id).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -82,6 +85,7 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		&m.HTTPJsonPath, &m.HTTPJsonExpected, &m.HTTPXPath, &m.HTTPXPathExpected,
 		&m.SMTPUseTLS, &m.SMTPIgnoreTLS, &m.SMTPUsername, &m.SMTPPassword,
 		&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
+		&m.HTTPRequestHeaders, &m.HTTPRequestBody,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -102,8 +106,9 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		                      http_json_path, http_json_expected, http_xpath, http_xpath_expected,
 		                      smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		                      notify_on_failure, notify_on_success, notify_body_chars,
+		                      http_request_headers, http_request_body,
 		                      created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
 		m.HTTPAcceptedStatuses, m.HTTPIgnoreTLS, m.HTTPMethod, m.HTTPKeyword, m.HTTPKeywordInvert,
@@ -113,6 +118,7 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		m.HTTPJsonPath, m.HTTPJsonExpected, m.HTTPXPath, m.HTTPXPathExpected,
 		m.SMTPUseTLS, m.SMTPIgnoreTLS, m.SMTPUsername, m.SMTPPassword,
 		m.NotifyOnFailure, m.NotifyOnSuccess, m.NotifyBodyChars,
+		m.HTTPRequestHeaders, m.HTTPRequestBody,
 		now, now)
 	if err != nil {
 		return 0, err
@@ -132,6 +138,7 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		http_json_path=?, http_json_expected=?, http_xpath=?, http_xpath_expected=?,
 		smtp_use_tls=?, smtp_ignore_tls=?, smtp_username=?, smtp_password=?,
 		notify_on_failure=?, notify_on_success=?, notify_body_chars=?,
+		http_request_headers=?, http_request_body=?,
 		updated_at=? WHERE id=?
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
@@ -142,6 +149,7 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		m.HTTPJsonPath, m.HTTPJsonExpected, m.HTTPXPath, m.HTTPXPathExpected,
 		m.SMTPUseTLS, m.SMTPIgnoreTLS, m.SMTPUsername, m.SMTPPassword,
 		m.NotifyOnFailure, m.NotifyOnSuccess, m.NotifyBodyChars,
+		m.HTTPRequestHeaders, m.HTTPRequestBody,
 		time.Now(), m.ID)
 	return err
 }
@@ -308,6 +316,7 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		       http_json_path, http_json_expected, http_xpath, http_xpath_expected,
 		       smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		       notify_on_failure, notify_on_success, notify_body_chars,
+		       http_request_headers, http_request_body,
 		       created_at, updated_at
 		FROM monitors WHERE push_token = ? AND push_token != ''
 	`, token).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -320,6 +329,7 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		&m.HTTPJsonPath, &m.HTTPJsonExpected, &m.HTTPXPath, &m.HTTPXPathExpected,
 		&m.SMTPUseTLS, &m.SMTPIgnoreTLS, &m.SMTPUsername, &m.SMTPPassword,
 		&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
+		&m.HTTPRequestHeaders, &m.HTTPRequestBody,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil

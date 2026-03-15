@@ -53,8 +53,8 @@ This document tracks which features from Uptime Kuma are implemented, in progres
 | TLS certificate expiry alert | ⬜ Planned | Alert N days before expiry |
 | Basic auth | ✅ Done | Username + password on monitor |
 | Bearer token auth | ✅ Done | `Authorization: Bearer …` header (takes priority over basic auth) |
-| Custom request headers | ⬜ Planned | Key-value list |
-| Custom request body | ✅ Done | HTTP method select (GET/HEAD/POST/PUT/PATCH/OPTIONS) |
+| Custom request headers | ✅ Done | `Key: Value` per line; set on HTTP request before auth headers |
+| Custom request body | ✅ Done | HTTP method select + raw body textarea for POST/PUT/PATCH |
 | Keyword match in body | ✅ Done | (see Monitor Types above) |
 | JSON path query | ✅ Done | (see Monitor Types above) |
 | Redirect follow control | ✅ Done | Max redirects (0 = no-follow) |
