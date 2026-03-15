@@ -1,0 +1,14 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "My Website",
+  "type": "http",
+  "url": "https://example.com",
+  "interval_seconds": 60,
+  "timeout_seconds": 30,
+  "retries": 2,
+  "http_method": "GET",
+  "http_max_redirects": 5,
+  "http_ignore_tls": false,
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

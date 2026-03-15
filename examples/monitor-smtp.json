@@ -1,0 +1,14 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "SMTP — mail.example.com",
+  "type": "smtp",
+  "url": "mail.example.com:587",
+  "interval_seconds": 120,
+  "timeout_seconds": 15,
+  "retries": 1,
+  "smtp_use_tls": false,
+  "smtp_ignore_tls": false,
+  "smtp_username": "monitor@example.com",
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

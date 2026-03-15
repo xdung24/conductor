@@ -1,0 +1,16 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "GitHub Status API — keyword check",
+  "type": "http",
+  "url": "https://www.githubstatus.com/",
+  "interval_seconds": 120,
+  "timeout_seconds": 15,
+  "retries": 1,
+  "http_method": "GET",
+  "http_max_redirects": 5,
+  "http_keyword": "All Systems Operational",
+  "http_keyword_invert": false,
+  "http_ignore_tls": false,
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "Ping — myserver.example.com",
+  "type": "ping",
+  "url": "myserver.example.com",
+  "interval_seconds": 60,
+  "timeout_seconds": 10,
+  "retries": 2,
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

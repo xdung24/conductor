@@ -1,0 +1,12 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "MySQL — production DB",
+  "type": "mysql",
+  "url": "monitor_user:password@tcp(db.example.com:3306)/myapp",
+  "interval_seconds": 60,
+  "timeout_seconds": 10,
+  "retries": 2,
+  "db_query": "SELECT 1",
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

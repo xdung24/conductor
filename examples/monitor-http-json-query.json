@@ -1,0 +1,16 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "JSON API — status field check",
+  "type": "http",
+  "url": "https://httpbin.org/json",
+  "interval_seconds": 60,
+  "timeout_seconds": 15,
+  "retries": 1,
+  "http_method": "GET",
+  "http_max_redirects": 3,
+  "http_body_type": "json",
+  "http_json_path": "$.slideshow.title",
+  "http_json_expected": "Sample Slide Show",
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

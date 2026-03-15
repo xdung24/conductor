@@ -1,0 +1,18 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "Custom API — POST with Bearer token",
+  "type": "http",
+  "url": "https://api.example.com/health",
+  "interval_seconds": 60,
+  "timeout_seconds": 10,
+  "retries": 2,
+  "http_method": "POST",
+  "http_bearer_token": "replace-with-your-token",
+  "http_header_name": "X-App-Version",
+  "http_header_value": "1.0",
+  "http_accepted_statuses": "200,204",
+  "http_ignore_tls": false,
+  "notify_on_failure": true,
+  "notify_on_success": false,
+  "notify_body_chars": 500
+}

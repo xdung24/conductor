@@ -1,0 +1,11 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "Uptime Push — my cron job",
+  "type": "push",
+  "url": "",
+  "interval_seconds": 60,
+  "timeout_seconds": 30,
+  "retries": 0,
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

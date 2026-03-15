@@ -1,0 +1,14 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "DNS — A record for example.com",
+  "type": "dns",
+  "url": "example.com",
+  "interval_seconds": 300,
+  "timeout_seconds": 10,
+  "retries": 1,
+  "dns_server": "8.8.8.8",
+  "dns_record_type": "A",
+  "dns_expected": "93.184.216.34",
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

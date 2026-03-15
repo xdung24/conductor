@@ -1,0 +1,11 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "Redis — cache server",
+  "type": "redis",
+  "url": "redis.example.com:6379",
+  "interval_seconds": 60,
+  "timeout_seconds": 10,
+  "retries": 2,
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

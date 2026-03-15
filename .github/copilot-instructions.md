@@ -131,7 +131,8 @@ All planned, in-progress, and completed features are tracked in **`FEATURES.md`*
 5. Register it in `checkerFor()` switch in `checker.go`
 6. Add the `<option>` to `monitor_form.html`; add any type-specific form fields with JS show/hide
 7. Update `monitorFromForm()` in `internal/web/handlers/monitors.go` to parse the new fields; update export/import structs too
-8. Mark the feature `✅ Done` in `FEATURES.md`
+8. Add a sample import file `examples/monitor-<type>.json` covering the new type's key fields
+9. Mark the feature `✅ Done` in `FEATURES.md`
 
 ## Adding a New Notification Provider
 

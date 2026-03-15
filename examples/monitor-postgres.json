@@ -1,0 +1,12 @@
+{
+  "schema": "service-monitor/monitor/v1",
+  "name": "PostgreSQL — production DB",
+  "type": "postgres",
+  "url": "postgres://monitor_user:password@db.example.com:5432/myapp?sslmode=disable",
+  "interval_seconds": 60,
+  "timeout_seconds": 10,
+  "retries": 2,
+  "db_query": "SELECT 1",
+  "notify_on_failure": true,
+  "notify_on_success": false
+}
