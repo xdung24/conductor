@@ -421,7 +421,10 @@ func (h *Handler) MonitorDelete(c *gin.Context) {
 		_ = h.users.UnregisterPushToken(m.PushToken)
 	}
 	h.schedFor(c).Unschedule(m.ID)
-	h.monitorStore(c).Delete(m.ID)
+	if err := h.monitorStore(c).Delete(m.ID); err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
+		return
+	}
 	c.Redirect(http.StatusFound, "/")
 }
 
@@ -431,7 +434,10 @@ func (h *Handler) MonitorPause(c *gin.Context) {
 	if !ok {
 		return
 	}
-	h.monitorStore(c).SetActive(m.ID, false)
+	if err := h.monitorStore(c).SetActive(m.ID, false); err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
+		return
+	}
 	h.schedFor(c).Unschedule(m.ID)
 	c.Redirect(http.StatusFound, "/")
 }
@@ -442,7 +448,10 @@ func (h *Handler) MonitorResume(c *gin.Context) {
 	if !ok {
 		return
 	}
-	h.monitorStore(c).SetActive(m.ID, true)
+	if err := h.monitorStore(c).SetActive(m.ID, true); err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
+		return
+	}
 	m.Active = true
 	h.schedFor(c).Schedule(m)
 	c.Redirect(http.StatusFound, "/")

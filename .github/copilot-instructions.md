@@ -106,10 +106,12 @@ All protected handlers access stores via context helpers defined on `Handler`:
 - **Indentation**: tabs (Go standard)
 - **Naming**: Go idiomatic — camelCase for Go, snake_case for SQL columns
 - **Error handling**: always wrap errors with `fmt.Errorf("context: %w", err)`
+- **Error checking**: always check every error return value — never discard with `_` unless the call genuinely cannot fail or the error is intentionally ignored (document why with a comment). This applies to all store methods (`Create`, `Update`, `Delete`, `SetActive`, etc.) and any other function that returns an `error`.
 - **No CGO**: all dependencies must be pure Go (no CGO required)
 - **Templates**: each page is a `{{ define "filename.html" }}` block in its own file, pulling in `{{ template "styles" }}` and `{{ template "navbar" }}` from `partials.html`
 - **SQL migrations**: filename format `NNNN_description.up.sql` / `NNNN_description.down.sql`; embedded via `//go:embed` in `database.go`
 - **Never edit existing migration files** — always add a new numbered migration
+- **Database context (noctx)**: never call `(*sql.DB).Exec`, `(*sql.DB).Query`, or `(*sql.DB).QueryRow` directly — always use the `Context` variants (`ExecContext`, `QueryContext`, `QueryRowContext`) passing `context.Background()` at minimum
 
 ## Feature Roadmap
 

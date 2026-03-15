@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -96,7 +97,7 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 // Create inserts a new monitor and returns its ID.
 func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 	now := time.Now()
-	res, err := s.db.Exec(`
+	res, err := s.db.ExecContext(context.Background(), `
 		INSERT INTO monitors (name, type, url, interval_seconds, timeout_seconds, active, retries,
 		                      dns_server, dns_record_type, dns_expected,
 		                      http_accepted_statuses, http_ignore_tls, http_method, http_keyword, http_keyword_invert,
@@ -128,7 +129,7 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 
 // Update modifies an existing monitor.
 func (s *MonitorStore) Update(m *Monitor) error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		UPDATE monitors SET name=?, type=?, url=?, interval_seconds=?, timeout_seconds=?,
 		active=?, retries=?, dns_server=?, dns_record_type=?, dns_expected=?,
 		http_accepted_statuses=?, http_ignore_tls=?, http_method=?, http_keyword=?, http_keyword_invert=?,
@@ -156,13 +157,13 @@ func (s *MonitorStore) Update(m *Monitor) error {
 
 // Delete removes a monitor (cascades to heartbeats).
 func (s *MonitorStore) Delete(id int64) error {
-	_, err := s.db.Exec(`DELETE FROM monitors WHERE id = ?`, id)
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM monitors WHERE id = ?`, id)
 	return err
 }
 
 // SetActive pauses or resumes a monitor.
 func (s *MonitorStore) SetActive(id int64, active bool) error {
-	_, err := s.db.Exec(`UPDATE monitors SET active=?, updated_at=? WHERE id=?`, active, time.Now(), id)
+	_, err := s.db.ExecContext(context.Background(), `UPDATE monitors SET active=?, updated_at=? WHERE id=?`, active, time.Now(), id)
 	return err
 }
 
@@ -178,7 +179,7 @@ func NewHeartbeatStore(db *sql.DB) *HeartbeatStore {
 
 // Insert saves a heartbeat result.
 func (s *HeartbeatStore) Insert(h *Heartbeat) error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		INSERT INTO heartbeats (monitor_id, status, latency_ms, message, created_at)
 		VALUES (?, ?, ?, ?, ?)
 	`, h.MonitorID, h.Status, h.LatencyMs, h.Message, h.CreatedAt)
@@ -252,7 +253,7 @@ func (s *UserStore) GetByUsername(username string) (*User, error) {
 
 // Create inserts a new user.
 func (s *UserStore) Create(username, hashedPassword string) error {
-	_, err := s.db.Exec(`INSERT INTO users (username, password) VALUES (?, ?)`, username, hashedPassword)
+	_, err := s.db.ExecContext(context.Background(), `INSERT INTO users (username, password) VALUES (?, ?)`, username, hashedPassword)
 	if err != nil {
 		return fmt.Errorf("create user: %w", err)
 	}
@@ -280,7 +281,7 @@ func (s *UserStore) ListAll() ([]*User, error) {
 
 // RegisterPushToken records a mapping from push token to username in the shared users DB.
 func (s *UserStore) RegisterPushToken(token, username string) error {
-	_, err := s.db.Exec(
+	_, err := s.db.ExecContext(context.Background(),
 		`INSERT INTO push_tokens (token, username) VALUES (?, ?)
 		 ON CONFLICT(token) DO UPDATE SET username=excluded.username`,
 		token, username,
@@ -290,7 +291,7 @@ func (s *UserStore) RegisterPushToken(token, username string) error {
 
 // UnregisterPushToken removes the push token mapping from the shared users DB.
 func (s *UserStore) UnregisterPushToken(token string) error {
-	_, err := s.db.Exec(`DELETE FROM push_tokens WHERE token=?`, token)
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM push_tokens WHERE token=?`, token)
 	return err
 }
 
@@ -307,19 +308,19 @@ func (s *UserStore) LookupPushToken(token string) (string, error) {
 
 // UnregisterAllPushTokens removes every push token that belongs to the given user.
 func (s *UserStore) UnregisterAllPushTokens(username string) error {
-	_, err := s.db.Exec(`DELETE FROM push_tokens WHERE username=?`, username)
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM push_tokens WHERE username=?`, username)
 	return err
 }
 
 // Delete removes a user record from the database.
 func (s *UserStore) Delete(username string) error {
-	_, err := s.db.Exec(`DELETE FROM users WHERE username=?`, username)
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM users WHERE username=?`, username)
 	return err
 }
 
 // UpdatePassword replaces the stored hashed password for a user.
 func (s *UserStore) UpdatePassword(username, hashedPassword string) error {
-	_, err := s.db.Exec(`UPDATE users SET password=? WHERE username=?`, hashedPassword, username)
+	_, err := s.db.ExecContext(context.Background(), `UPDATE users SET password=? WHERE username=?`, hashedPassword, username)
 	return err
 }
 
@@ -330,7 +331,7 @@ func (s *UserStore) UpdatePassword(username, hashedPassword string) error {
 // UpdateLastStatus stores the last observed status and the last status for
 // which a notification was fired.
 func (s *MonitorStore) UpdateLastStatus(id int64, status int) error {
-	_, err := s.db.Exec(
+	_, err := s.db.ExecContext(context.Background(),
 		`UPDATE monitors SET last_status=? WHERE id=?`,
 		status, id,
 	)
@@ -339,7 +340,7 @@ func (s *MonitorStore) UpdateLastStatus(id int64, status int) error {
 
 // UpdateLastNotifiedStatus records that a notification was sent for the given status.
 func (s *MonitorStore) UpdateLastNotifiedStatus(id int64, status int) error {
-	_, err := s.db.Exec(
+	_, err := s.db.ExecContext(context.Background(),
 		`UPDATE monitors SET last_notified_status=? WHERE id=?`,
 		status, id,
 	)
@@ -450,7 +451,7 @@ func (s *NotificationStore) Get(id int64) (*Notification, error) {
 
 // Create inserts a new notification provider and returns its ID.
 func (s *NotificationStore) Create(n *Notification) (int64, error) {
-	res, err := s.db.Exec(`
+	res, err := s.db.ExecContext(context.Background(), `
 		INSERT INTO notifications (name, type, config, active) VALUES (?, ?, ?, ?)
 	`, n.Name, n.Type, n.Config, n.Active)
 	if err != nil {
@@ -461,7 +462,7 @@ func (s *NotificationStore) Create(n *Notification) (int64, error) {
 
 // Update modifies an existing notification provider.
 func (s *NotificationStore) Update(n *Notification) error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		UPDATE notifications SET name=?, type=?, config=?, active=? WHERE id=?
 	`, n.Name, n.Type, n.Config, n.Active, n.ID)
 	return err
@@ -469,7 +470,7 @@ func (s *NotificationStore) Update(n *Notification) error {
 
 // Delete removes a notification provider.
 func (s *NotificationStore) Delete(id int64) error {
-	_, err := s.db.Exec(`DELETE FROM notifications WHERE id=?`, id)
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM notifications WHERE id=?`, id)
 	return err
 }
 
@@ -499,7 +500,7 @@ func (s *NotificationStore) ListForMonitor(monitorID int64) ([]*Notification, er
 
 // LinkMonitor attaches a notification to a monitor (idempotent).
 func (s *NotificationStore) LinkMonitor(monitorID, notificationID int64) error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		INSERT OR IGNORE INTO monitor_notifications (monitor_id, notification_id) VALUES (?, ?)
 	`, monitorID, notificationID)
 	return err
@@ -507,7 +508,7 @@ func (s *NotificationStore) LinkMonitor(monitorID, notificationID int64) error {
 
 // UnlinkMonitor detaches a notification from a monitor.
 func (s *NotificationStore) UnlinkMonitor(monitorID, notificationID int64) error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		DELETE FROM monitor_notifications WHERE monitor_id=? AND notification_id=?
 	`, monitorID, notificationID)
 	return err
@@ -521,11 +522,11 @@ func (s *NotificationStore) ReplaceMonitorLinks(monitorID int64, notificationIDs
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.Exec(`DELETE FROM monitor_notifications WHERE monitor_id=?`, monitorID); err != nil {
+	if _, err := tx.ExecContext(context.Background(), `DELETE FROM monitor_notifications WHERE monitor_id=?`, monitorID); err != nil {
 		return err
 	}
 	for _, nid := range notificationIDs {
-		if _, err := tx.Exec(
+		if _, err := tx.ExecContext(context.Background(),
 			`INSERT OR IGNORE INTO monitor_notifications (monitor_id, notification_id) VALUES (?, ?)`,
 			monitorID, nid,
 		); err != nil {
@@ -551,7 +552,7 @@ func NewNotificationLogStore(db *sql.DB) *NotificationLogStore {
 
 // Insert records a notification delivery attempt.
 func (s *NotificationLogStore) Insert(l *NotificationLog) error {
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(context.Background(), `
 		INSERT INTO notification_logs
 			(monitor_id, notification_id, monitor_name, notification_name, event_status, success, error, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)

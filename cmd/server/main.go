@@ -25,7 +25,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to open users database: %v", err)
 	}
-	defer usersDB.Close()
+	defer func() {
+		if err := usersDB.Close(); err != nil {
+			log.Printf("failed to close users database: %v", err)
+		}
+	}()
 
 	if err := database.MigrateUsersDB(usersDB); err != nil {
 		log.Fatalf("failed to run users migrations: %v", err)
