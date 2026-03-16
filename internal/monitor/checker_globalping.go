@@ -37,8 +37,8 @@ type globalpingResult struct {
 	Status  string `json:"status"`
 	Results []struct {
 		Result struct {
-			Status    string  `json:"status"`
-			RawOutput string  `json:"rawOutput"`
+			Status    string `json:"status"`
+			RawOutput string `json:"rawOutput"`
 			Stats     *struct {
 				Loss float64 `json:"loss"`
 				Avg  float64 `json:"avg"`

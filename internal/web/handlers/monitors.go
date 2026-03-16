@@ -617,7 +617,6 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 	// Group monitor
 	parentIDVal, _ := strconv.ParseInt(c.DefaultPostForm("parent_id", "0"), 10, 64)
 
-
 	m := &models.Monitor{
 		Name:                 name,
 		Type:                 monType,
