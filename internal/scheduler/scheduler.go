@@ -20,6 +20,7 @@ type Scheduler struct {
 	heartbeat     *models.HeartbeatStore
 	notifications *models.NotificationStore
 	notifLogs     *models.NotificationLogStore
+	maintenance   *models.MaintenanceStore
 	jobs          map[int64]*job
 	mu            sync.Mutex
 	ctx           context.Context
@@ -41,6 +42,7 @@ func New(db *sql.DB) *Scheduler {
 		heartbeat:     models.NewHeartbeatStore(db),
 		notifications: models.NewNotificationStore(db),
 		notifLogs:     models.NewNotificationLogStore(db),
+		maintenance:   models.NewMaintenanceStore(db),
 		jobs:          make(map[int64]*job),
 		ctx:           ctx,
 		cancel:        cancel,
@@ -110,6 +112,11 @@ func (s *Scheduler) Schedule(m *models.Monitor) {
 				if err != nil || latest == nil {
 					s.Unschedule(m.ID)
 					return
+				}
+				// Skip check if within an active maintenance window.
+				if inMaint, _ := s.maintenance.IsInMaintenance(latest.ID, time.Now()); inMaint {
+					log.Printf("monitor[%d] %s — skipped (maintenance window active)", latest.ID, latest.Name)
+					continue
 				}
 				go s.runCheck(latest)
 			case <-j.stop:

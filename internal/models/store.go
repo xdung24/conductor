@@ -30,7 +30,7 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 		       smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		       notify_on_failure, notify_on_success, notify_body_chars,
 		       http_request_headers, http_request_body,
-		       db_query,
+		       db_query, cert_expiry_alert_days,
 		       created_at, updated_at
 		FROM monitors ORDER BY id ASC
 	`)
@@ -53,7 +53,7 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 			&m.SMTPUseTLS, &m.SMTPIgnoreTLS, &m.SMTPUsername, &m.SMTPPassword,
 			&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
 			&m.HTTPRequestHeaders, &m.HTTPRequestBody,
-			&m.DBQuery,
+			&m.DBQuery, &m.CertExpiryAlertDays,
 			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -76,7 +76,7 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		       smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		       notify_on_failure, notify_on_success, notify_body_chars,
 		       http_request_headers, http_request_body,
-		       db_query,
+		       db_query, cert_expiry_alert_days,
 		       created_at, updated_at
 		FROM monitors WHERE id = ?
 	`, id).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -90,7 +90,7 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		&m.SMTPUseTLS, &m.SMTPIgnoreTLS, &m.SMTPUsername, &m.SMTPPassword,
 		&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
 		&m.HTTPRequestHeaders, &m.HTTPRequestBody,
-		&m.DBQuery,
+		&m.DBQuery, &m.CertExpiryAlertDays,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -112,9 +112,9 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		                      smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		                      notify_on_failure, notify_on_success, notify_body_chars,
 		                      http_request_headers, http_request_body,
-		                      db_query,
+		                      db_query, cert_expiry_alert_days,
 		                      created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
 		m.HTTPAcceptedStatuses, m.HTTPIgnoreTLS, m.HTTPMethod, m.HTTPKeyword, m.HTTPKeywordInvert,
@@ -125,7 +125,7 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		m.SMTPUseTLS, m.SMTPIgnoreTLS, m.SMTPUsername, m.SMTPPassword,
 		m.NotifyOnFailure, m.NotifyOnSuccess, m.NotifyBodyChars,
 		m.HTTPRequestHeaders, m.HTTPRequestBody,
-		m.DBQuery,
+		m.DBQuery, m.CertExpiryAlertDays,
 		now, now)
 	if err != nil {
 		return 0, err
@@ -146,7 +146,7 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		smtp_use_tls=?, smtp_ignore_tls=?, smtp_username=?, smtp_password=?,
 		notify_on_failure=?, notify_on_success=?, notify_body_chars=?,
 		http_request_headers=?, http_request_body=?,
-		db_query=?,
+		db_query=?, cert_expiry_alert_days=?,
 		updated_at=? WHERE id=?
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
@@ -158,7 +158,7 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		m.SMTPUseTLS, m.SMTPIgnoreTLS, m.SMTPUsername, m.SMTPPassword,
 		m.NotifyOnFailure, m.NotifyOnSuccess, m.NotifyBodyChars,
 		m.HTTPRequestHeaders, m.HTTPRequestBody,
-		m.DBQuery,
+		m.DBQuery, m.CertExpiryAlertDays,
 		time.Now(), m.ID)
 	return err
 }
@@ -228,6 +228,34 @@ func (s *HeartbeatStore) UptimePercent(monitorID int64, since time.Time) (float6
 		return 0, err
 	}
 	return float64(up) / float64(total) * 100, nil
+}
+
+// LatencyHistory returns the last `limit` latency values for a monitor, oldest first.
+// Only UP beats (status=1) are included so DOWN spikes don't distort the sparkline scale.
+func (s *HeartbeatStore) LatencyHistory(monitorID int64, limit int) ([]int, error) {
+	rows, err := s.db.Query(`
+		SELECT latency_ms FROM heartbeats
+		WHERE monitor_id = ?
+		ORDER BY created_at DESC LIMIT ?
+	`, monitorID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var vals []int
+	for rows.Next() {
+		var v int
+		if err := rows.Scan(&v); err != nil {
+			return nil, err
+		}
+		vals = append(vals, v)
+	}
+	// Reverse so oldest-first (left→right) for the sparkline.
+	for i, j := 0, len(vals)-1; i < j; i, j = i+1, j-1 {
+		vals[i], vals[j] = vals[j], vals[i]
+	}
+	return vals, rows.Err()
 }
 
 // UserStore handles user DB operations.
@@ -390,7 +418,7 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		       smtp_use_tls, smtp_ignore_tls, smtp_username, smtp_password,
 		       notify_on_failure, notify_on_success, notify_body_chars,
 		       http_request_headers, http_request_body,
-		       db_query,
+		       db_query, cert_expiry_alert_days,
 		       created_at, updated_at
 		FROM monitors WHERE push_token = ? AND push_token != ''
 	`, token).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -404,7 +432,7 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		&m.SMTPUseTLS, &m.SMTPIgnoreTLS, &m.SMTPUsername, &m.SMTPPassword,
 		&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
 		&m.HTTPRequestHeaders, &m.HTTPRequestBody,
-		&m.DBQuery,
+		&m.DBQuery, &m.CertExpiryAlertDays,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil

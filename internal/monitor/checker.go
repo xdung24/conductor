@@ -226,6 +226,22 @@ func (c *HTTPChecker) Check(ctx context.Context, m *models.Monitor) Result {
 		}
 		r.BodyExcerpt = excerpt
 	}
+
+	// TLS certificate expiry alert: check the leaf cert's NotAfter.
+	// Only fires when the request actually used TLS (resp.TLS != nil) AND the
+	// user has set an alert threshold. Does not conflict with HTTPIgnoreTLS —
+	// the check applies whether or not cert errors are skipped.
+	if m.CertExpiryAlertDays > 0 && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		leaf := resp.TLS.PeerCertificates[0]
+		daysLeft := int(time.Until(leaf.NotAfter).Hours() / 24)
+		if daysLeft < m.CertExpiryAlertDays {
+			if daysLeft < 0 {
+				return Result{Status: 0, LatencyMs: latency, Message: fmt.Sprintf("TLS certificate expired %d day(s) ago", -daysLeft)}
+			}
+			return Result{Status: 0, LatencyMs: latency, Message: fmt.Sprintf("TLS certificate expires in %d day(s) (threshold: %d)", daysLeft, m.CertExpiryAlertDays)}
+		}
+	}
+
 	return r
 }
 

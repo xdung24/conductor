@@ -1,0 +1,70 @@
+{{ define "status_page_list.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Status Pages — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin-bottom:0;">Status Pages</h1>
+    <a href="/status-pages/new" class="btn btn-primary">+ New Status Page</a>
+</div>
+
+{{ if .Flash }}
+<div class="alert" style="background:#064e3b; border:1px solid #10b981; color:#6ee7b7;">{{ .Flash }}</div>
+{{ end }}
+
+{{ if .Pages }}
+<div class="card" style="padding:0;">
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Public URL</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {{ range .Pages }}
+    <tr>
+        <td style="font-weight:500;">{{ .Name }}</td>
+        <td><code style="color:#94a3b8; font-size:0.8rem;">{{ .Slug }}</code></td>
+        <td>
+            <a href="/status/{{ $.Username }}/{{ .Slug }}" target="_blank"
+               style="font-size:0.8rem; color:#60a5fa; font-family:monospace;">
+                /status/{{ $.Username }}/{{ .Slug }}
+            </a>
+        </td>
+        <td>
+            <div style="display:flex; gap:0.4rem;">
+                <a href="/status-pages/{{ .ID }}/edit" class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">Edit</a>
+                <a href="/status/{{ $.Username }}/{{ .Slug }}" target="_blank" class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">View</a>
+                <form method="POST" action="/status-pages/{{ .ID }}/delete"
+                      onsubmit="return confirm('Delete status page {{ .Name }}?')" style="display:inline;">
+                    <button class="btn btn-danger" style="padding:0.3rem 0.6rem; font-size:0.8rem;">Delete</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>
+</div>
+{{ else }}
+<div class="card" style="text-align:center; padding:3rem;">
+    <p style="color:#64748b; margin-bottom:1rem;">No status pages yet.</p>
+    <a href="/status-pages/new" class="btn btn-primary">Create your first status page</a>
+</div>
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,124 @@
+{{ define "status_page_public.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .Page.Name }} — Status</title>
+    {{ template "styles" . }}
+    <style>
+        .public-header {
+            text-align: center;
+            padding: 2.5rem 1rem 1.5rem;
+        }
+        .public-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+        }
+        .public-header p {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        .overall-status {
+            text-align: center;
+            margin: 0 auto 2rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-badge-up   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .status-badge-down { background: rgba(239, 68, 68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .monitor-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid #1e293b;
+        }
+        .monitor-row:last-child { border-bottom: none; }
+        .dot {
+            width: 0.6rem; height: 0.6rem; border-radius: 50%; flex-shrink: 0;
+        }
+        .dot-up   { background: #10b981; }
+        .dot-down { background: #ef4444; }
+        .dot-pend { background: #f59e0b; }
+        .uptime-bar {
+            display: inline-block;
+            width: 3.5rem;
+            font-size: 0.775rem;
+            font-weight: 600;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .uptime-good    { color: #34d399; }
+        .uptime-warn    { color: #fbbf24; }
+        .uptime-bad     { color: #f87171; }
+        .public-footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+        .public-footer a { color: #6366f1; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container" style="max-width:720px;">
+
+<div class="public-header">
+    <h1>{{ .Page.Name }}</h1>
+    {{ if .Page.Description }}<p>{{ .Page.Description }}</p>{{ end }}
+    <div style="display:flex; justify-content:center; margin-top:1rem;">
+        {{ if .AllOperational }}
+        <span class="overall-status status-badge-up">&#10003; All Systems Operational</span>
+        {{ else }}
+        <span class="overall-status status-badge-down">&#9888; Partial Outage Detected</span>
+        {{ end }}
+    </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+    {{ if .Monitors }}
+    {{ range .Monitors }}
+    <div class="monitor-row">
+        {{ if .Monitor }}
+        {{ if eq .LatestStatus 1 }}
+        <span class="dot dot-up"></span>
+        {{ else if eq .LatestStatus 0 }}
+        <span class="dot dot-pend"></span>
+        {{ else }}
+        <span class="dot dot-down"></span>
+        {{ end }}
+        <span style="font-size:0.875rem; color:#e2e8f0; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ .Monitor.Name }}
+        </span>
+        <span style="font-size:0.75rem; color:#64748b; flex-shrink:0;">
+            {{ .Monitor.URL }}
+        </span>
+        <span class="uptime-bar {{ if ge .Uptime24h 99.0 }}uptime-good{{ else if ge .Uptime24h 95.0 }}uptime-warn{{ else }}uptime-bad{{ end }}">
+            {{ printf "%.1f" .Uptime24h }}%
+        </span>
+        <span style="font-size:0.7rem; color:#475569; flex-shrink:0;">24h</span>
+        {{ end }}
+    </div>
+    {{ end }}
+    {{ else }}
+    <div style="padding:2rem; text-align:center; color:#64748b; font-size:0.875rem;">
+        No monitors on this page yet.
+    </div>
+    {{ end }}
+</div>
+
+<div class="public-footer">
+    <p>Powered by <a href="https://github.com/xdung24/service-monitor" target="_blank">Service Monitor</a></p>
+    <p style="margin-top:0.25rem;">Last updated: {{ .Now }}</p>
+</div>
+
+</div>
+</body>
+</html>
+{{ end }}

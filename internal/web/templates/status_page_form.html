@@ -1,0 +1,80 @@
+{{ define "status_page_form.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ if .IsNew }}New Status Page{{ else }}Edit Status Page{{ end }} — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<h1 class="page-title">{{ if .IsNew }}New Status Page{{ else }}Edit Status Page{{ end }}</h1>
+
+{{ if .Error }}
+<div class="alert alert-danger">{{ .Error }}</div>
+{{ end }}
+
+<div class="card" style="max-width:640px;">
+    <form method="POST" action="{{ if .IsNew }}/status-pages{{ else }}/status-pages/{{ .Page.ID }}{{ end }}">
+        <div class="form-group">
+            <label for="name">Page Name</label>
+            <input class="form-control" type="text" id="name" name="name"
+                   value="{{ .Page.Name }}" placeholder="My Services" required />
+        </div>
+        <div class="form-group">
+            <label for="slug">Slug <span style="color:#64748b; font-weight:400;">(URL-friendly, e.g. my-services)</span></label>
+            <input class="form-control" type="text" id="slug" name="slug"
+                   value="{{ .Page.Slug }}" placeholder="my-services"
+                   pattern="[a-z0-9\-]+" title="lowercase letters, numbers, and hyphens only" required />
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                Public URL will be <code>/status/{your-username}/{{ if .Page.Slug }}{{ .Page.Slug }}{{ else }}&lt;slug&gt;{{ end }}</code>
+            </small>
+        </div>
+        <div class="form-group">
+            <label for="description">Description <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+            <textarea class="form-control" id="description" name="description" rows="2"
+                      placeholder="All systems operational">{{ .Page.Description }}</textarea>
+        </div>
+
+        <div class="form-group" style="margin-top:1.25rem;">
+            <div style="margin:0 0 0.75rem; padding-top:1rem; border-top:1px solid #334155;">
+                <span style="font-size:0.75rem; color:#64748b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;">Monitors to display</span>
+            </div>
+            {{ if .AllMonitors }}
+            <p style="font-size:0.775rem; color:#64748b; margin-bottom:0.6rem;">Select monitors to show on the public page.</p>
+            <div style="border:1px solid #334155; border-radius:0.5rem; overflow:hidden; max-height:320px; overflow-y:auto;">
+            {{ range .AllMonitors }}
+            <label style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0.9rem;
+                          border-bottom:1px solid #1e293b; cursor:pointer;"
+                   onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+                <input type="checkbox" name="monitors" value="{{ .ID }}"
+                    {{ if index $.LinkedMonitorIDs .ID }}checked{{ end }}
+                    style="width:1rem; height:1rem; flex-shrink:0; accent-color:#6366f1; cursor:pointer;" />
+                <span style="font-size:0.875rem; color:#e2e8f0;">{{ .Name }}</span>
+                <span style="font-size:0.775rem; color:#64748b; margin-left:auto;">{{ .Type }} — {{ .URL }}</span>
+            </label>
+            {{ end }}
+            </div>
+            {{ else }}
+            <div style="border:1px dashed #334155; border-radius:0.5rem; padding:1rem; text-align:center;">
+                <p style="font-size:0.8rem; color:#64748b;">No monitors available. <a href="/monitors/new">Create one first</a>.</p>
+            </div>
+            {{ end }}
+        </div>
+
+        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+            <button type="submit" class="btn btn-primary">
+                {{ if .IsNew }}Create Status Page{{ else }}Save Changes{{ end }}
+            </button>
+            <a href="/status-pages" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+    </div>
+</body>
+</html>
+{{ end }}

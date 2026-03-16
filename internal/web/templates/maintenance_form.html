@@ -1,0 +1,90 @@
+{{ define "maintenance_form.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ if .IsNew }}New Maintenance Window{{ else }}Edit Maintenance Window{{ end }} — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<h1 class="page-title">{{ if .IsNew }}New Maintenance Window{{ else }}Edit Maintenance Window{{ end }}</h1>
+
+{{ if .Error }}
+<div class="alert alert-danger">{{ .Error }}</div>
+{{ end }}
+
+<div class="card" style="max-width:640px;">
+    <form method="POST" action="{{ if .IsNew }}/maintenance{{ else }}/maintenance/{{ .Window.ID }}{{ end }}">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input class="form-control" type="text" id="name" name="name"
+                   value="{{ .Window.Name }}" placeholder="Scheduled Maintenance" required />
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+                <label for="start_time">Start Time</label>
+                <input class="form-control" type="datetime-local" id="start_time" name="start_time"
+                       value="{{ .StartValue }}" required />
+            </div>
+            <div class="form-group">
+                <label for="end_time">End Time</label>
+                <input class="form-control" type="datetime-local" id="end_time" name="end_time"
+                       value="{{ .EndValue }}" required />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer; user-select:none;">
+                <input type="checkbox" id="active" name="active" value="1"
+                    {{ if .Window.Active }}checked{{ end }}
+                    style="width:1rem; height:1rem; accent-color:#6366f1;" />
+                <span>Active — skip health checks during this window</span>
+            </label>
+        </div>
+
+        <div class="form-group" style="margin-top:1.25rem;">
+            <div style="margin:0 0 0.75rem; padding-top:1rem; border-top:1px solid #334155;">
+                <span style="font-size:0.75rem; color:#64748b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;">Affected Monitors</span>
+            </div>
+            {{ if .AllMonitors }}
+            <p style="font-size:0.775rem; color:#64748b; margin-bottom:0.6rem;">
+                Select monitors to pause during this maintenance window. Leave all unchecked to apply to all monitors.
+            </p>
+            <div style="border:1px solid #334155; border-radius:0.5rem; overflow:hidden; max-height:320px; overflow-y:auto;">
+            {{ range .AllMonitors }}
+            <label style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0.9rem;
+                          border-bottom:1px solid #1e293b; cursor:pointer;"
+                   onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+                <input type="checkbox" name="monitors" value="{{ .ID }}"
+                    {{ if index $.LinkedMonitorIDs .ID }}checked{{ end }}
+                    style="width:1rem; height:1rem; flex-shrink:0; accent-color:#6366f1; cursor:pointer;" />
+                <span style="font-size:0.875rem; color:#e2e8f0;">{{ .Name }}</span>
+                <span style="font-size:0.775rem; color:#64748b; margin-left:auto;">{{ .Type }}</span>
+            </label>
+            {{ end }}
+            </div>
+            {{ else }}
+            <div style="border:1px dashed #334155; border-radius:0.5rem; padding:1rem; text-align:center;">
+                <p style="font-size:0.8rem; color:#64748b;">No monitors available. <a href="/monitors/new">Create one first</a>.</p>
+            </div>
+            {{ end }}
+        </div>
+
+        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+            <button type="submit" class="btn btn-primary">
+                {{ if .IsNew }}Create Window{{ else }}Save Changes{{ end }}
+            </button>
+            <a href="/maintenance" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+    </div>
+</body>
+</html>
+{{ end }}

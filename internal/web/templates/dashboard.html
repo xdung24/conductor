@@ -66,6 +66,7 @@
             <th>Name</th>
             <th>Type</th>
             <th>URL</th>
+            <th>Sparkline</th>
             <th>Latency</th>
             <th>24h Uptime</th>
             <th>30d Uptime</th>
@@ -88,10 +89,24 @@
                 <span class="badge badge-unknown">Pending</span>
             {{ end }}
         </td>
-        <td><a href="/monitors/{{ .ID }}">{{ .Name }}</a></td>
+        <td><a href="/monitors/{{ .ID }}">{{ .Name }}</a>
+            {{ $tags := index $.Tags .ID }}
+            {{ if $tags }}
+            <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.25rem;">
+            {{ range $tags }}
+            <span style="display:inline-block; padding:0.1rem 0.45rem; border-radius:9999px;
+                         font-size:0.7rem; font-weight:600; background:{{ .Color }}22; color:{{ .Color }};
+                         border:1px solid {{ .Color }}55;">{{ .Name }}</span>
+            {{ end }}
+            </div>
+            {{ end }}
+        </td>
         <td><span style="color:#94a3b8;">{{ .Type }}</span></td>
         <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
             <span class="text-muted">{{ .URL }}</span>
+        </td>
+        <td style="padding:0.5rem 1rem;">
+            {{ sparkget $.Sparklines .ID }}
         </td>
         <td>
             {{ if .LastLatency }}{{ deref .LastLatency }}ms{{ else }}&mdash;{{ end }}

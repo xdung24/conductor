@@ -50,7 +50,7 @@ This document tracks which features from Uptime Kuma are implemented, in progres
 | Status code check | ✅ Done | |
 | Custom accepted status codes | ✅ Done | e.g. treat 404 as UP |
 | Ignore TLS/SSL errors | ✅ Done | `InsecureSkipVerify` flag (user opt-in) |
-| TLS certificate expiry alert | ⬜ Planned | Alert N days before expiry |
+| TLS certificate expiry alert | ✅ Done | Alert N days before expiry; configurable per monitor |
 | Basic auth | ✅ Done | Username + password on monitor |
 | Bearer token auth | ✅ Done | `Authorization: Bearer …` header (takes priority over basic auth) |
 | Custom request headers | ✅ Done | `Key: Value` per line; set on HTTP request before auth headers |
@@ -73,9 +73,9 @@ This document tracks which features from Uptime Kuma are implemented, in progres
 | Notification providers: Webhook | ✅ Done | |
 | Notification providers: Telegram | ✅ Done | |
 | Notification providers: Email (SMTP) | ✅ Done | |
-| Public status page | ⬜ Planned | Read-only page showing selected monitors |
-| Maintenance windows | ⬜ Planned | Suppress alerts during scheduled downtime |
-| Tags / labels on monitors | ⬜ Planned | Color-coded labels, filter by tag |
+| Public status page | ✅ Done | Read-only page at `/status/:username/:slug` showing selected monitors with 24h uptime |
+| Maintenance windows | ✅ Done | Suppress alerts during scheduled downtime; per-monitor or global |
+| Tags / labels on monitors | ✅ Done | Color-coded labels; assign to monitors; displayed on dashboard |
 | Proxy management | ⬜ Planned | Shared proxy config referenced by monitors |
 | Docker host management | ⬜ Planned | Registered Docker daemons for Docker monitor |
 | API keys | ⬜ Planned | Token-based API access |
@@ -83,8 +83,8 @@ This document tracks which features from Uptime Kuma are implemented, in progres
 | Additional notification providers | ✅ Done (Slack, Discord, ntfy); ⬜ Planned (PagerDuty, Gotify, others) |
 | Remote browser config | ⬜ Planned | Chromium endpoint for real-browser checks |
 | Cloudflare Tunnel integration | ⬜ Planned | Expose via cloudflared without open port |
-| Dark/light theme toggle | ⬜ Planned | User preference stored in cookie |
-| Latency sparkline charts | ⬜ Planned | Inline SVG trend on dashboard/detail |
+| Dark/light theme toggle | ✅ Done | User preference stored in `sm_theme` cookie; toggled from navbar |
+| Latency sparkline charts | ✅ Done | Inline SVG polyline of last 50 checks on dashboard |
 | Multi-user support | ✅ Done | Per-user monitors/notifications in isolated SQLite DB files; shared `users.db` for auth + push token routing; `Registry` + `MultiScheduler` for per-user DB and scheduler lifecycle |
 | Import / export monitors | ✅ Done | Export a single monitor's config as JSON (`GET /monitors/:id/export`); import via file upload (`POST /monitors/import`) |
 | User management admin page | ✅ Done | `/admin/users` — list, add, change password, delete users |

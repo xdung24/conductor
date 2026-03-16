@@ -27,6 +27,12 @@ func templateFuncMap() template.FuncMap {
 			}
 			return m[key]
 		},
+		"sparkget": func(m map[int64]template.HTML, key int64) template.HTML {
+			if m == nil {
+				return ""
+			}
+			return m[key]
+		},
 	}
 }
 
@@ -65,6 +71,9 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 	// Push endpoint (unauthenticated — external services call this to signal UP).
 	r.GET("/push/:token", h.MonitorPush)
 
+	// Public status page (unauthenticated)
+	r.GET("/status/:username/:slug", h.StatusPagePublic)
+
 	// Dashboard (protected)
 	auth := r.Group("/")
 	auth.Use(h.AuthRequired())
@@ -100,6 +109,33 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.GET("/admin/users/:username/password", h.UserPasswordPage)
 		auth.POST("/admin/users/:username/password", h.UserChangePassword)
 		auth.POST("/admin/users/:username/delete", h.UserDelete)
+
+		// Tags
+		auth.GET("/tags", h.TagList)
+		auth.GET("/tags/new", h.TagNew)
+		auth.POST("/tags", h.TagCreate)
+		auth.GET("/tags/:id/edit", h.TagEdit)
+		auth.POST("/tags/:id", h.TagUpdate)
+		auth.POST("/tags/:id/delete", h.TagDelete)
+
+		// Status Pages
+		auth.GET("/status-pages", h.StatusPageList)
+		auth.GET("/status-pages/new", h.StatusPageNew)
+		auth.POST("/status-pages", h.StatusPageCreate)
+		auth.GET("/status-pages/:id/edit", h.StatusPageEdit)
+		auth.POST("/status-pages/:id", h.StatusPageUpdate)
+		auth.POST("/status-pages/:id/delete", h.StatusPageDelete)
+
+		// Maintenance
+		auth.GET("/maintenance", h.MaintenanceList)
+		auth.GET("/maintenance/new", h.MaintenanceNew)
+		auth.POST("/maintenance", h.MaintenanceCreate)
+		auth.GET("/maintenance/:id/edit", h.MaintenanceEdit)
+		auth.POST("/maintenance/:id", h.MaintenanceUpdate)
+		auth.POST("/maintenance/:id/delete", h.MaintenanceDelete)
+
+		// Settings
+		auth.POST("/settings/theme", h.ThemeToggle)
 	}
 
 	return r

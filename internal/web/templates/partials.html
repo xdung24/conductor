@@ -5,6 +5,24 @@
     a { color: #60a5fa; text-decoration: none; }
     a:hover { text-decoration: underline; }
 
+    /* Light theme overrides */
+    [data-theme="light"] body { background: #f8fafc; color: #0f172a; }
+    [data-theme="light"] .navbar { background: #ffffff; border-bottom-color: #e2e8f0; }
+    [data-theme="light"] .navbar-brand { color: #0f172a; }
+    [data-theme="light"] .navbar-actions a { color: #475569; }
+    [data-theme="light"] .card { background: #ffffff; border-color: #e2e8f0; }
+    [data-theme="light"] .form-control { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+    [data-theme="light"] .form-control:focus { outline: 2px solid #3b82f6; border-color: #3b82f6; }
+    [data-theme="light"] select.form-control option { background: #ffffff; }
+    [data-theme="light"] .btn-ghost { background: #e2e8f0; color: #334155; }
+    [data-theme="light"] th { color: #475569; }
+    [data-theme="light"] th, [data-theme="light"] td { border-bottom-color: #e2e8f0; }
+    [data-theme="light"] tr:hover td { background: rgba(0,0,0,0.02); }
+    [data-theme="light"] .stat-card { background: #ffffff; border-color: #e2e8f0; }
+    [data-theme="light"] .stat-label { color: #475569; }
+    [data-theme="light"] .text-muted { color: #64748b; }
+    [data-theme="light"] a { color: #2563eb; }
+
     .navbar {
         background: #1e293b;
         border-bottom: 1px solid #334155;
@@ -82,7 +100,15 @@
     .stat-up   { color: #34d399; }
     .stat-down { color: #f87171; }
     .stat-neutral { color: #60a5fa; }
+
+    .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
 </style>
+<script>
+    (function(){
+        var c = document.cookie.split('; ').find(function(r){ return r.startsWith('sm_theme='); });
+        if (c) { var v = c.split('=')[1]; if (v) document.documentElement.setAttribute('data-theme', v); }
+    })();
+</script>
 {{ end }}
 
 {{ define "navbar" }}
@@ -91,7 +117,17 @@
     <div class="navbar-actions" style="display:flex; gap:1.5rem; align-items:center;">
         <a href="/" style="color:#94a3b8; font-size:0.875rem;">Monitors</a>
         <a href="/notifications" style="color:#94a3b8; font-size:0.875rem;">Notifications</a>
+        <a href="/status-pages" style="color:#94a3b8; font-size:0.875rem;">Status Pages</a>
+        <a href="/tags" style="color:#94a3b8; font-size:0.875rem;">Tags</a>
+        <a href="/maintenance" style="color:#94a3b8; font-size:0.875rem;">Maintenance</a>
         <a href="/admin/users" style="color:#94a3b8; font-size:0.875rem;">Users</a>
+        <form method="POST" action="/settings/theme" style="display:inline; margin:0;">
+            <button type="submit" title="Toggle theme"
+                    style="background:none; border:1px solid #334155; border-radius:0.4rem; color:#94a3b8;
+                           cursor:pointer; font-size:0.875rem; padding:0.25rem 0.55rem; line-height:1;">
+                &#9788;
+            </button>
+        </form>
         <a href="/logout" style="color:#94a3b8; font-size:0.875rem;">Logout</a>
     </div>
 </nav>

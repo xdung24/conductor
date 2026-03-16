@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
+	"html/template"
 	"net/http"
 	"time"
 
@@ -218,6 +220,7 @@ func (h *Handler) Logout(c *gin.Context) {
 func (h *Handler) Dashboard(c *gin.Context) {
 	mstore := h.monitorStore(c)
 	bstore := h.heartbeatStore(c)
+	tstore := h.tagStore(c)
 
 	monitors, err := mstore.List()
 	if err != nil {
@@ -226,8 +229,16 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	}
 
 	now := time.Now()
+	monitorIDs := make([]int64, 0, len(monitors))
 	for _, m := range monitors {
-		beats, _ := bstore.Latest(m.ID, 1)
+		monitorIDs = append(monitorIDs, m.ID)
+	}
+
+	sparklines := make(map[int64]template.HTML, len(monitors))
+	tagMap, _ := tstore.TagMapForMonitors(monitorIDs)
+
+	for _, m := range monitors {
+		beats, _ := bstore.Latest(m.ID, 50)
 		if len(beats) > 0 {
 			m.LastStatus = &beats[0].Status
 			m.LastLatency = &beats[0].LatencyMs
@@ -235,7 +246,54 @@ func (h *Handler) Dashboard(c *gin.Context) {
 		}
 		m.Uptime24h, _ = bstore.UptimePercent(m.ID, now.Add(-24*time.Hour))
 		m.Uptime30d, _ = bstore.UptimePercent(m.ID, now.Add(-30*24*time.Hour))
+		sparklines[m.ID] = computeSparklineSVG(beats)
 	}
 
-	c.HTML(http.StatusOK, "dashboard.html", gin.H{"Monitors": monitors})
+	c.HTML(http.StatusOK, "dashboard.html", gin.H{
+		"Monitors":   monitors,
+		"Sparklines": sparklines,
+		"Tags":       tagMap,
+		"Username":   h.username(c),
+	})
+}
+
+// computeSparklineSVG generates an inline SVG polyline from heartbeat data.
+// beats should be in newest-first order (as returned by bstore.Latest).
+func computeSparklineSVG(beats []*models.Heartbeat) template.HTML {
+	if len(beats) == 0 {
+		return ""
+	}
+
+	// Reverse to oldest-first for left-to-right rendering.
+	n := len(beats)
+	points := make([]int, n)
+	for i, b := range beats {
+		points[n-1-i] = b.LatencyMs
+	}
+
+	// Find max latency for scaling (minimum 1 to avoid divide-by-zero).
+	maxVal := 1
+	for _, v := range points {
+		if v > maxVal {
+			maxVal = v
+		}
+	}
+
+	const svgW, svgH = 80, 24
+	var pts string
+	for i, v := range points {
+		x := float64(i) * float64(svgW) / float64(len(points)-1)
+		y := float64(svgH) - (float64(v)/float64(maxVal))*float64(svgH-2) - 1
+		if i == 0 {
+			pts += fmt.Sprintf("%.1f,%.1f", x, y)
+		} else {
+			pts += fmt.Sprintf(" %.1f,%.1f", x, y)
+		}
+	}
+
+	svg := fmt.Sprintf(
+		`<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" style="display:block;"><polyline points="%s" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`,
+		svgW, svgH, svgW, svgH, pts,
+	)
+	return template.HTML(svg)
 }

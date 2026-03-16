@@ -68,6 +68,9 @@ type Monitor struct {
 	// Database monitor fields (mysql, postgres, redis, mongodb)
 	DBQuery string `db:"db_query"` // optional query/command; empty = just connect/ping
 
+	// TLS certificate expiry alert (HTTP only)
+	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled
+
 	// Notification trigger settings
 	NotifyOnFailure bool `db:"notify_on_failure"` // send notification when check result is DOWN
 	NotifyOnSuccess bool `db:"notify_on_success"` // send notification when check result is UP

@@ -1,0 +1,114 @@
+{{ define "tags.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tags — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin-bottom:0;">Tags</h1>
+    <a href="/tags/new" class="btn btn-primary">+ New Tag</a>
+</div>
+
+{{ if .Flash }}
+<div class="alert" style="background:#064e3b; border:1px solid #10b981; color:#6ee7b7;">{{ .Flash }}</div>
+{{ end }}
+
+{{ if or .NewForm .EditForm }}
+<div class="card" style="max-width:480px; margin-bottom:1.5rem;">
+    <h2 style="font-size:1rem; font-weight:600; margin-bottom:1rem;">
+        {{ if .NewForm }}Create Tag{{ else }}Edit Tag{{ end }}
+    </h2>
+    {{ if .Error }}
+    <div class="alert alert-danger">{{ .Error }}</div>
+    {{ end }}
+    <form method="POST" action="{{ if .NewForm }}/tags{{ else }}/tags/{{ .Tag.ID }}{{ end }}">
+        <div class="form-group">
+            <label for="tag-name">Name</label>
+            <input class="form-control" type="text" id="tag-name" name="name"
+                   value="{{ .Tag.Name }}" placeholder="e.g. production" required />
+        </div>
+        <div class="form-group">
+            <label for="tag-color">Color</label>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+                <input type="color" id="tag-color" name="color" value="{{ .Tag.Color }}"
+                       style="width:3rem; height:2.2rem; padding:0.1rem; border:1px solid #334155;
+                              background:#0f172a; border-radius:0.35rem; cursor:pointer;" />
+                <input class="form-control" type="text" id="tag-color-hex" value="{{ .Tag.Color }}"
+                       placeholder="#6366f1" pattern="#[0-9a-fA-F]{6}" style="max-width:8rem;"
+                       oninput="document.getElementById('tag-color').value=this.value" />
+            </div>
+            <script>
+                document.getElementById('tag-color').addEventListener('input', function() {
+                    document.getElementById('tag-color-hex').value = this.value;
+                    document.querySelector('input[name=color]').value = this.value;
+                });
+            </script>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary">{{ if .NewForm }}Create{{ else }}Save{{ end }}</button>
+            <a href="/tags" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{ if .Tags }}
+<div class="card" style="padding:0;">
+<table>
+    <thead>
+        <tr>
+            <th>Tag</th>
+            <th>Name</th>
+            <th>Color</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {{ range .Tags }}
+    <tr>
+        <td>
+            <span style="display:inline-block; padding:0.2rem 0.75rem; border-radius:9999px;
+                         background:{{ .Color }}22; color:{{ .Color }};
+                         font-size:0.8rem; font-weight:600; border:1px solid {{ .Color }}55;">
+                {{ .Name }}
+            </span>
+        </td>
+        <td style="color:#94a3b8;">{{ .Name }}</td>
+        <td>
+            <span style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <span style="width:1rem; height:1rem; border-radius:50%; background:{{ .Color }}; display:inline-block;"></span>
+                <code style="font-size:0.8rem; color:#94a3b8;">{{ .Color }}</code>
+            </span>
+        </td>
+        <td>
+            <div style="display:flex; gap:0.4rem;">
+                <a href="/tags/{{ .ID }}/edit" class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">Edit</a>
+                <form method="POST" action="/tags/{{ .ID }}/delete"
+                      onsubmit="return confirm('Delete tag {{ .Name }}?')" style="display:inline;">
+                    <button class="btn btn-danger" style="padding:0.3rem 0.6rem; font-size:0.8rem;">Delete</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>
+</div>
+{{ else if not .NewForm }}
+<div class="card" style="text-align:center; padding:3rem;">
+    <p style="color:#64748b; margin-bottom:1rem;">No tags yet.</p>
+    <a href="/tags/new" class="btn btn-primary">Create your first tag</a>
+</div>
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

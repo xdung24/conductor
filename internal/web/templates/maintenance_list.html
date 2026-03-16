@@ -1,0 +1,82 @@
+{{ define "maintenance_list.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maintenance Windows — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">Maintenance Windows</h1>
+    <a href="/maintenance/new" class="btn btn-primary">+ New Window</a>
+</div>
+
+{{ if .Flash }}
+<div class="alert alert-success" style="margin-bottom:1rem;">{{ .Flash }}</div>
+{{ end }}
+
+{{ if .Windows }}
+<div class="card" style="padding:0; overflow:hidden;">
+    <table class="table" style="margin:0;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Status</th>
+                <th style="text-align:center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .Windows }}
+        <tr>
+            <td style="font-weight:500; color:#e2e8f0;">{{ .Name }}</td>
+            <td style="font-size:0.8125rem; color:#94a3b8; white-space:nowrap;">
+                {{ .StartTime.Format "2006-01-02 15:04" }}
+            </td>
+            <td style="font-size:0.8125rem; color:#94a3b8; white-space:nowrap;">
+                {{ .EndTime.Format "2006-01-02 15:04" }}
+            </td>
+            <td>
+                {{ if .Active }}
+                <span style="display:inline-block; padding:0.15rem 0.65rem; border-radius:9999px;
+                             font-size:0.7rem; font-weight:600; letter-spacing:0.04em;
+                             background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3);">
+                    ACTIVE
+                </span>
+                {{ else }}
+                <span style="display:inline-block; padding:0.15rem 0.65rem; border-radius:9999px;
+                             font-size:0.7rem; font-weight:600; letter-spacing:0.04em;
+                             background:rgba(100,116,139,0.15); color:#64748b; border:1px solid rgba(100,116,139,0.3);">
+                    DISABLED
+                </span>
+                {{ end }}
+            </td>
+            <td style="text-align:center; white-space:nowrap;">
+                <a href="/maintenance/{{ .ID }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+                <form method="POST" action="/maintenance/{{ .ID }}/delete" style="display:inline;"
+                      onsubmit="return confirm('Delete maintenance window &quot;{{ .Name }}&quot;?')">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+{{ else }}
+<div class="card" style="text-align:center; padding:2.5rem; color:#64748b;">
+    <p style="font-size:1rem; margin-bottom:1rem;">No maintenance windows yet.</p>
+    <a href="/maintenance/new" class="btn btn-primary">Create your first window</a>
+</div>
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

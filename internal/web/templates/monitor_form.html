@@ -234,6 +234,16 @@
                     Useful for including API error details in alerts.
                 </small>
             </div>
+            <div class="form-group">
+                <label for="cert_expiry_alert_days">TLS Certificate Expiry Alert <span style="color:#64748b; font-weight:400;">(days before expiry)</span></label>
+                <input class="form-control" type="number" id="cert_expiry_alert_days" name="cert_expiry_alert_days"
+                       value="{{ .Monitor.CertExpiryAlertDays }}" min="0" max="365"
+                       placeholder="0" style="max-width:10rem;" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Set to 0 to disable. When set, the monitor will go DOWN if the TLS certificate expires
+                    within this many days. Useful for catching certificate renewals before they lapse.
+                </small>
+            </div>
         </div>
 
         <!-- SMTP options (shown only for smtp type) -->
@@ -418,7 +428,28 @@
             </div>
             {{ end }}
         </div>
-        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+        {{ if .AllTags }}
+        <div class="form-group" style="margin-top:1.25rem;">
+            <div style="margin:0 0 0.75rem; padding-top:1rem; border-top:1px solid #334155;">
+                <span style="font-size:0.75rem; color:#64748b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;">Tags</span>
+            </div>
+            <p style="font-size:0.775rem; color:#64748b; margin-bottom:0.6rem;">Assign tags to organize monitors on the dashboard.</p>
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            {{ range .AllTags }}
+            <label style="display:flex; align-items:center; gap:0.4rem; padding:0.35rem 0.65rem;
+                          border-radius:9999px; cursor:pointer;
+                          border:1px solid {{ .Color }}55; background:{{ .Color }}11;"
+                   onmouseover="this.style.background='{{ .Color }}22'" onmouseout="this.style.background='{{ .Color }}11'">
+                <input type="checkbox" name="tag_ids" value="{{ .ID }}"
+                    {{ if index $.LinkedTagIDs .ID }}checked{{ end }}
+                    style="width:0.85rem; height:0.85rem; accent-color:{{ .Color }}; cursor:pointer;" />
+                <span style="font-size:0.8rem; font-weight:600; color:{{ .Color }};">{{ .Name }}</span>
+            </label>
+            {{ end }}
+            </div>
+        </div>
+        {{ end }}
+        <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">
                 {{ if .IsNew }}Create Monitor{{ else }}Save Changes{{ end }}
             </button>

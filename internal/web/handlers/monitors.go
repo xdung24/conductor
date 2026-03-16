@@ -18,6 +18,7 @@ import (
 // MonitorNew renders the new monitor form.
 func (h *Handler) MonitorNew(c *gin.Context) {
 	allNotifs, _ := h.notifStore(c).List()
+	allTags, _ := h.tagStore(c).List()
 	c.HTML(http.StatusOK, "monitor_form.html", gin.H{
 		"Monitor":        &models.Monitor{IntervalSeconds: 60, TimeoutSeconds: 30, Retries: 1, NotifyOnFailure: true, NotifyOnSuccess: true},
 		"IsNew":          true,
@@ -25,6 +26,8 @@ func (h *Handler) MonitorNew(c *gin.Context) {
 		"AllNotifs":      allNotifs,
 		"LinkedNotifIDs": map[int64]bool{},
 		"NotifSummaries": notifSummaryMap(allNotifs),
+		"AllTags":        allTags,
+		"LinkedTagIDs":   map[int64]bool{},
 	})
 }
 
@@ -33,10 +36,12 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 	m, err := monitorFromForm(c)
 	if err != nil {
 		allNotifs, _ := h.notifStore(c).List()
+		allTags, _ := h.tagStore(c).List()
 		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{
 			"Monitor": m, "IsNew": true, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
+			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
 		})
 		return
 	}
@@ -49,16 +54,19 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 	id, err := h.monitorStore(c).Create(m)
 	if err != nil {
 		allNotifs, _ := h.notifStore(c).List()
+		allTags, _ := h.tagStore(c).List()
 		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{
 			"Monitor": m, "IsNew": true, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
+			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
 		})
 		return
 	}
 
 	m.ID = id
 	_ = h.notifStore(c).ReplaceMonitorLinks(m.ID, notifIDsFromForm(c))
+	_ = h.tagStore(c).SetMonitorTags(m.ID, tagIDsFromForm(c))
 
 	// Register the push token in the shared users DB so the unauthenticated
 	// /push/:token endpoint can resolve which user's DB to look in.
@@ -103,6 +111,13 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 	for _, n := range linked {
 		linkedIDs[n.ID] = true
 	}
+	tstore := h.tagStore(c)
+	allTags, _ := tstore.List()
+	linkedTags, _ := tstore.ListForMonitor(m.ID)
+	linkedTagIDs := make(map[int64]bool, len(linkedTags))
+	for _, t := range linkedTags {
+		linkedTagIDs[t.ID] = true
+	}
 	c.HTML(http.StatusOK, "monitor_form.html", gin.H{
 		"Monitor":        m,
 		"IsNew":          false,
@@ -110,6 +125,8 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 		"AllNotifs":      allNotifs,
 		"LinkedNotifIDs": linkedIDs,
 		"NotifSummaries": notifSummaryMap(allNotifs),
+		"AllTags":        allTags,
+		"LinkedTagIDs":   linkedTagIDs,
 	})
 }
 
@@ -129,10 +146,17 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 		for _, n := range linked {
 			linkedIDs[n.ID] = true
 		}
+		allTags, _ := h.tagStore(c).List()
+		linkedTags, _ := h.tagStore(c).ListForMonitor(m.ID)
+		linkedTagIDs := make(map[int64]bool, len(linkedTags))
+		for _, t := range linkedTags {
+			linkedTagIDs[t.ID] = true
+		}
 		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{
 			"Monitor": m, "IsNew": false, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": linkedIDs,
 			"NotifSummaries": notifSummaryMap(allNotifs),
+			"AllTags":        allTags, "LinkedTagIDs": linkedTagIDs,
 		})
 		return
 	}
@@ -154,15 +178,18 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 
 	if err := h.monitorStore(c).Update(updated); err != nil {
 		allNotifs, _ := nstore.List()
+		allTags, _ := h.tagStore(c).List()
 		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{
 			"Monitor": updated, "IsNew": false, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
+			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
 		})
 		return
 	}
 
 	_ = nstore.ReplaceMonitorLinks(updated.ID, notifIDsFromForm(c))
+	_ = h.tagStore(c).SetMonitorTags(updated.ID, tagIDsFromForm(c))
 	h.schedFor(c).Schedule(updated)
 	c.Redirect(http.StatusFound, "/")
 }
@@ -548,6 +575,10 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 	if err4 != nil || notifyBodyChars < 0 {
 		notifyBodyChars = 0
 	}
+	certExpiryAlertDays, _ := strconv.Atoi(c.DefaultPostForm("cert_expiry_alert_days", "0"))
+	if certExpiryAlertDays < 0 {
+		certExpiryAlertDays = 0
+	}
 	if notifyBodyChars > 4096 {
 		notifyBodyChars = 4096
 	}
@@ -591,6 +622,7 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		NotifyOnFailure:      notifyOnFailure,
 		NotifyOnSuccess:      notifyOnSuccess,
 		NotifyBodyChars:      notifyBodyChars,
+		CertExpiryAlertDays:  certExpiryAlertDays,
 	}
 	if name == "" {
 		return m, &formError{"name is required"}
@@ -618,6 +650,19 @@ func generatePushToken() string {
 // notifIDsFromForm parses the repeated "notifications" form values into a slice of int64 IDs.
 func notifIDsFromForm(c *gin.Context) []int64 {
 	vals := c.PostFormArray("notifications")
+	ids := make([]int64, 0, len(vals))
+	for _, v := range vals {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// tagIDsFromForm parses the repeated "tag_ids" form values into a slice of int64 IDs.
+func tagIDsFromForm(c *gin.Context) []int64 {
+	vals := c.PostFormArray("tag_ids")
 	ids := make([]int64, 0, len(vals))
 	for _, v := range vals {
 		id, err := strconv.ParseInt(v, 10, 64)

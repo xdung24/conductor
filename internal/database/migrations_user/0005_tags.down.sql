@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS monitor_tags;
+DROP TABLE IF EXISTS tags;
