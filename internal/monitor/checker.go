@@ -27,6 +27,11 @@ type Checker interface {
 	Check(ctx context.Context, m *models.Monitor) Result
 }
 
+// DockerHostLookup is an optional callback that resolves a docker_host ID to
+// its (socketPath, httpURL) connection details. Set this at application startup
+// when Docker monitoring is in use.
+var DockerHostLookup func(id int64) (socketPath, httpURL string)
+
 // Run performs the appropriate check for a monitor (with retry logic).
 func Run(ctx context.Context, m *models.Monitor) Result {
 	checker := checkerFor(m)
@@ -62,6 +67,20 @@ func checkerFor(m *models.Monitor) Checker {
 		return &RedisChecker{}
 	case models.MonitorTypeMongoDB:
 		return &MongoDBChecker{}
+	case models.MonitorTypeMSSQL:
+		return &MSSQLChecker{}
+	case models.MonitorTypeWebSocket:
+		return &WebSocketChecker{}
+	case models.MonitorTypeMQTT:
+		return &MQTTChecker{}
+	case models.MonitorTypeGRPC:
+		return &GRPCChecker{}
+	case models.MonitorTypeDocker:
+		dc := &DockerChecker{}
+		if DockerHostLookup != nil && m.DockerHostID > 0 {
+			dc.HostSocketPath, dc.HostHTTPURL = DockerHostLookup(m.DockerHostID)
+		}
+		return dc
 	default:
 		return &HTTPChecker{}
 	}

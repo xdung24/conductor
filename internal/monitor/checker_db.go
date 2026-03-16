@@ -13,6 +13,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	// Pure-Go PostgreSQL driver
 	_ "github.com/lib/pq"
+	// Microsoft SQL Server driver
+	_ "github.com/microsoft/go-mssqldb"
 	// Pure-Go MongoDB driver
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -271,5 +273,54 @@ func (c *MongoDBChecker) Check(ctx context.Context, m *models.Monitor) Result {
 		Status:    1,
 		LatencyMs: int(time.Since(start).Milliseconds()),
 		Message:   "MongoDB OK",
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Microsoft SQL Server checker
+// ---------------------------------------------------------------------------
+
+// MSSQLChecker checks a Microsoft SQL Server by opening a connection and
+// running either a configured query or a lightweight "SELECT 1" ping.
+//
+// The monitor URL must be a valid SQL Server DSN:
+//
+//	sqlserver://user:password@host:port?database=dbname
+//	server=host;user id=user;password=pass;database=dbname
+type MSSQLChecker struct{}
+
+// Check opens a SQL Server connection, pings the server, and optionally
+// executes the configured query. Returns UP with latency on success.
+func (c *MSSQLChecker) Check(ctx context.Context, m *models.Monitor) Result {
+	start := time.Now()
+
+	db, err := sql.Open("sqlserver", m.URL)
+	if err != nil {
+		return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+	}
+	defer db.Close() //nolint:errcheck
+
+	db.SetMaxOpenConns(1)
+	db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
+
+	if err := db.PingContext(ctx); err != nil {
+		return Result{Status: 0, Message: fmt.Sprintf("ping: %v", err)}
+	}
+
+	query := m.DBQuery
+	if query == "" {
+		query = "SELECT 1"
+	}
+
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return Result{Status: 0, Message: fmt.Sprintf("query: %v", err)}
+	}
+	rows.Close() //nolint:errcheck
+
+	return Result{
+		Status:    1,
+		LatencyMs: int(time.Since(start).Milliseconds()),
+		Message:   "MSSQL OK",
 	}
 }

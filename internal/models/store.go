@@ -31,6 +31,9 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 		       notify_on_failure, notify_on_success, notify_body_chars,
 		       http_request_headers, http_request_body,
 		       db_query, cert_expiry_alert_days,
+		       mqtt_topic, mqtt_username, mqtt_password,
+		       grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
+		       docker_host_id, docker_container_id,
 		       created_at, updated_at
 		FROM monitors ORDER BY id ASC
 	`)
@@ -54,6 +57,9 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 			&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
 			&m.HTTPRequestHeaders, &m.HTTPRequestBody,
 			&m.DBQuery, &m.CertExpiryAlertDays,
+			&m.MQTTTopic, &m.MQTTUsername, &m.MQTTPassword,
+			&m.GRPCProtobuf, &m.GRPCServiceName, &m.GRPCMethod, &m.GRPCBody, &m.GRPCEnableTLS,
+			&m.DockerHostID, &m.DockerContainerID,
 			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -77,6 +83,9 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		       notify_on_failure, notify_on_success, notify_body_chars,
 		       http_request_headers, http_request_body,
 		       db_query, cert_expiry_alert_days,
+		       mqtt_topic, mqtt_username, mqtt_password,
+		       grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
+		       docker_host_id, docker_container_id,
 		       created_at, updated_at
 		FROM monitors WHERE id = ?
 	`, id).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -91,6 +100,9 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
 		&m.HTTPRequestHeaders, &m.HTTPRequestBody,
 		&m.DBQuery, &m.CertExpiryAlertDays,
+		&m.MQTTTopic, &m.MQTTUsername, &m.MQTTPassword,
+		&m.GRPCProtobuf, &m.GRPCServiceName, &m.GRPCMethod, &m.GRPCBody, &m.GRPCEnableTLS,
+		&m.DockerHostID, &m.DockerContainerID,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -113,8 +125,11 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		                      notify_on_failure, notify_on_success, notify_body_chars,
 		                      http_request_headers, http_request_body,
 		                      db_query, cert_expiry_alert_days,
+		                      mqtt_topic, mqtt_username, mqtt_password,
+		                      grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
+		                      docker_host_id, docker_container_id,
 		                      created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
 		m.HTTPAcceptedStatuses, m.HTTPIgnoreTLS, m.HTTPMethod, m.HTTPKeyword, m.HTTPKeywordInvert,
@@ -126,6 +141,9 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		m.NotifyOnFailure, m.NotifyOnSuccess, m.NotifyBodyChars,
 		m.HTTPRequestHeaders, m.HTTPRequestBody,
 		m.DBQuery, m.CertExpiryAlertDays,
+		m.MQTTTopic, m.MQTTUsername, m.MQTTPassword,
+		m.GRPCProtobuf, m.GRPCServiceName, m.GRPCMethod, m.GRPCBody, m.GRPCEnableTLS,
+		m.DockerHostID, m.DockerContainerID,
 		now, now)
 	if err != nil {
 		return 0, err
@@ -147,6 +165,9 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		notify_on_failure=?, notify_on_success=?, notify_body_chars=?,
 		http_request_headers=?, http_request_body=?,
 		db_query=?, cert_expiry_alert_days=?,
+		mqtt_topic=?, mqtt_username=?, mqtt_password=?,
+		grpc_protobuf=?, grpc_service_name=?, grpc_method=?, grpc_body=?, grpc_enable_tls=?,
+		docker_host_id=?, docker_container_id=?,
 		updated_at=? WHERE id=?
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
@@ -159,6 +180,9 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		m.NotifyOnFailure, m.NotifyOnSuccess, m.NotifyBodyChars,
 		m.HTTPRequestHeaders, m.HTTPRequestBody,
 		m.DBQuery, m.CertExpiryAlertDays,
+		m.MQTTTopic, m.MQTTUsername, m.MQTTPassword,
+		m.GRPCProtobuf, m.GRPCServiceName, m.GRPCMethod, m.GRPCBody, m.GRPCEnableTLS,
+		m.DockerHostID, m.DockerContainerID,
 		time.Now(), m.ID)
 	return err
 }
@@ -379,7 +403,7 @@ func (s *UserStore) UpdatePassword(username, hashedPassword string) error {
 func (s *UserStore) GetTOTP(username string) (secret string, enabled bool, err error) {
 	var sec sql.NullString
 	var ena sql.NullInt64
-	err = s.db.QueryRowContext(context.Background(), 
+	err = s.db.QueryRowContext(context.Background(),
 		`SELECT totp_secret, totp_enabled FROM users WHERE username=?`, username,
 	).Scan(&sec, &ena)
 	if err != nil {
@@ -436,7 +460,7 @@ func (s *MonitorStore) UpdateLastNotifiedStatus(id int64, status int) error {
 // Both values are nil-able (NULL before first check / first notification).
 func (s *MonitorStore) GetLastStatuses(id int64) (lastStatus, lastNotified *int, err error) {
 	var ls, ln sql.NullInt64
-	err = s.db.QueryRowContext(context.Background(), 
+	err = s.db.QueryRowContext(context.Background(),
 		`SELECT last_status, last_notified_status FROM monitors WHERE id=?`, id,
 	).Scan(&ls, &ln)
 	if err != nil {
@@ -468,6 +492,9 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		       notify_on_failure, notify_on_success, notify_body_chars,
 		       http_request_headers, http_request_body,
 		       db_query, cert_expiry_alert_days,
+		       mqtt_topic, mqtt_username, mqtt_password,
+		       grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
+		       docker_host_id, docker_container_id,
 		       created_at, updated_at
 		FROM monitors WHERE push_token = ? AND push_token != ''
 	`, token).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -482,6 +509,9 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		&m.NotifyOnFailure, &m.NotifyOnSuccess, &m.NotifyBodyChars,
 		&m.HTTPRequestHeaders, &m.HTTPRequestBody,
 		&m.DBQuery, &m.CertExpiryAlertDays,
+		&m.MQTTTopic, &m.MQTTUsername, &m.MQTTPassword,
+		&m.GRPCProtobuf, &m.GRPCServiceName, &m.GRPCMethod, &m.GRPCBody, &m.GRPCEnableTLS,
+		&m.DockerHostID, &m.DockerContainerID,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
