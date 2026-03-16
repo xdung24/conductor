@@ -6,21 +6,29 @@ import "time"
 type MonitorType string
 
 const (
-	MonitorTypeHTTP      MonitorType = "http"
-	MonitorTypeTCP       MonitorType = "tcp"
-	MonitorTypePing      MonitorType = "ping"
-	MonitorTypeDNS       MonitorType = "dns"
-	MonitorTypePush      MonitorType = "push"
-	MonitorTypeSMTP      MonitorType = "smtp"
-	MonitorTypeMySQL     MonitorType = "mysql"
-	MonitorTypePostgres  MonitorType = "postgres"
-	MonitorTypeRedis     MonitorType = "redis"
-	MonitorTypeMongoDB   MonitorType = "mongodb"
-	MonitorTypeWebSocket MonitorType = "websocket"
-	MonitorTypeMSSQL     MonitorType = "mssql"
-	MonitorTypeMQTT      MonitorType = "mqtt"
-	MonitorTypeGRPC      MonitorType = "grpc"
-	MonitorTypeDocker    MonitorType = "docker"
+	MonitorTypeHTTP          MonitorType = "http"
+	MonitorTypeTCP           MonitorType = "tcp"
+	MonitorTypePing          MonitorType = "ping"
+	MonitorTypeDNS           MonitorType = "dns"
+	MonitorTypePush          MonitorType = "push"
+	MonitorTypeSMTP          MonitorType = "smtp"
+	MonitorTypeMySQL         MonitorType = "mysql"
+	MonitorTypePostgres      MonitorType = "postgres"
+	MonitorTypeRedis         MonitorType = "redis"
+	MonitorTypeMongoDB       MonitorType = "mongodb"
+	MonitorTypeWebSocket     MonitorType = "websocket"
+	MonitorTypeMSSQL         MonitorType = "mssql"
+	MonitorTypeMQTT          MonitorType = "mqtt"
+	MonitorTypeGRPC          MonitorType = "grpc"
+	MonitorTypeDocker        MonitorType = "docker"
+	MonitorTypeRabbitMQ      MonitorType = "rabbitmq"
+	MonitorTypeSNMP          MonitorType = "snmp"
+	MonitorTypeSystemService MonitorType = "system_service"
+	MonitorTypeTailscale     MonitorType = "tailscale"
+	MonitorTypeGlobalping    MonitorType = "globalping"
+	MonitorTypeGroup         MonitorType = "group"
+	MonitorTypeManual        MonitorType = "manual"
+	MonitorTypeSIPOptions    MonitorType = "sip_options"
 )
 
 // Monitor represents a monitored target.
@@ -88,6 +96,21 @@ type Monitor struct {
 	// Docker container monitor fields
 	DockerHostID      int64  `db:"docker_host_id"`      // FK to docker_hosts.id; 0 = local socket
 	DockerContainerID string `db:"docker_container_id"` // container name or short ID to check
+
+	// SNMP monitor fields
+	SNMPCommunity string `db:"snmp_community"` // SNMP community string (e.g. public)
+	SNMPOid       string `db:"snmp_oid"`       // OID to query (e.g. 1.3.6.1.2.1.1.1.0)
+	SNMPVersion   string `db:"snmp_version"`   // SNMP version: 1, 2c, or 3
+	SNMPExpected  string `db:"snmp_expected"`  // optional expected value assertion
+
+	// System service monitor field
+	ServiceName string `db:"service_name"` // systemd unit name or Windows service name
+
+	// Manual monitor field
+	ManualStatus int `db:"manual_status"` // 1 = UP, 0 = DOWN; user-set via UI
+
+	// Group monitor field
+	ParentID int64 `db:"parent_id"` // ID of parent group monitor; 0 = top-level
 
 	// TLS certificate expiry alert (HTTP only)
 	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled

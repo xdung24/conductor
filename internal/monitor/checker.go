@@ -81,6 +81,22 @@ func checkerFor(m *models.Monitor) Checker {
 			dc.HostSocketPath, dc.HostHTTPURL = DockerHostLookup(m.DockerHostID)
 		}
 		return dc
+	case models.MonitorTypeRabbitMQ:
+		return &RabbitMQChecker{}
+	case models.MonitorTypeSNMP:
+		return &SNMPChecker{}
+	case models.MonitorTypeSystemService:
+		return &SystemServiceChecker{}
+	case models.MonitorTypeTailscale:
+		return &TailscaleChecker{}
+	case models.MonitorTypeGlobalping:
+		return &GlobalpingChecker{}
+	case models.MonitorTypeGroup:
+		return &GroupChecker{}
+	case models.MonitorTypeManual:
+		return &ManualChecker{}
+	case models.MonitorTypeSIPOptions:
+		return &SIPOptionsChecker{}
 	default:
 		return &HTTPChecker{}
 	}

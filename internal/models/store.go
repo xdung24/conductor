@@ -34,6 +34,8 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 		       mqtt_topic, mqtt_username, mqtt_password,
 		       grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
 		       docker_host_id, docker_container_id,
+		       snmp_community, snmp_oid, snmp_version, snmp_expected,
+		       service_name, manual_status, parent_id,
 		       created_at, updated_at
 		FROM monitors ORDER BY id ASC
 	`)
@@ -60,6 +62,8 @@ func (s *MonitorStore) List() ([]*Monitor, error) {
 			&m.MQTTTopic, &m.MQTTUsername, &m.MQTTPassword,
 			&m.GRPCProtobuf, &m.GRPCServiceName, &m.GRPCMethod, &m.GRPCBody, &m.GRPCEnableTLS,
 			&m.DockerHostID, &m.DockerContainerID,
+			&m.SNMPCommunity, &m.SNMPOid, &m.SNMPVersion, &m.SNMPExpected,
+			&m.ServiceName, &m.ManualStatus, &m.ParentID,
 			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -86,6 +90,8 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		       mqtt_topic, mqtt_username, mqtt_password,
 		       grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
 		       docker_host_id, docker_container_id,
+		       snmp_community, snmp_oid, snmp_version, snmp_expected,
+		       service_name, manual_status, parent_id,
 		       created_at, updated_at
 		FROM monitors WHERE id = ?
 	`, id).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -103,6 +109,8 @@ func (s *MonitorStore) Get(id int64) (*Monitor, error) {
 		&m.MQTTTopic, &m.MQTTUsername, &m.MQTTPassword,
 		&m.GRPCProtobuf, &m.GRPCServiceName, &m.GRPCMethod, &m.GRPCBody, &m.GRPCEnableTLS,
 		&m.DockerHostID, &m.DockerContainerID,
+		&m.SNMPCommunity, &m.SNMPOid, &m.SNMPVersion, &m.SNMPExpected,
+		&m.ServiceName, &m.ManualStatus, &m.ParentID,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -128,8 +136,10 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		                      mqtt_topic, mqtt_username, mqtt_password,
 		                      grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
 		                      docker_host_id, docker_container_id,
+		                      snmp_community, snmp_oid, snmp_version, snmp_expected,
+		                      service_name, manual_status, parent_id,
 		                      created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
 		m.HTTPAcceptedStatuses, m.HTTPIgnoreTLS, m.HTTPMethod, m.HTTPKeyword, m.HTTPKeywordInvert,
@@ -144,6 +154,8 @@ func (s *MonitorStore) Create(m *Monitor) (int64, error) {
 		m.MQTTTopic, m.MQTTUsername, m.MQTTPassword,
 		m.GRPCProtobuf, m.GRPCServiceName, m.GRPCMethod, m.GRPCBody, m.GRPCEnableTLS,
 		m.DockerHostID, m.DockerContainerID,
+		m.SNMPCommunity, m.SNMPOid, m.SNMPVersion, m.SNMPExpected,
+		m.ServiceName, m.ManualStatus, m.ParentID,
 		now, now)
 	if err != nil {
 		return 0, err
@@ -168,6 +180,8 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		mqtt_topic=?, mqtt_username=?, mqtt_password=?,
 		grpc_protobuf=?, grpc_service_name=?, grpc_method=?, grpc_body=?, grpc_enable_tls=?,
 		docker_host_id=?, docker_container_id=?,
+		snmp_community=?, snmp_oid=?, snmp_version=?, snmp_expected=?,
+		service_name=?, manual_status=?, parent_id=?,
 		updated_at=? WHERE id=?
 	`, m.Name, m.Type, m.URL, m.IntervalSeconds, m.TimeoutSeconds, m.Active, m.Retries,
 		m.DNSServer, m.DNSRecordType, m.DNSExpected,
@@ -183,6 +197,8 @@ func (s *MonitorStore) Update(m *Monitor) error {
 		m.MQTTTopic, m.MQTTUsername, m.MQTTPassword,
 		m.GRPCProtobuf, m.GRPCServiceName, m.GRPCMethod, m.GRPCBody, m.GRPCEnableTLS,
 		m.DockerHostID, m.DockerContainerID,
+		m.SNMPCommunity, m.SNMPOid, m.SNMPVersion, m.SNMPExpected,
+		m.ServiceName, m.ManualStatus, m.ParentID,
 		time.Now(), m.ID)
 	return err
 }
@@ -495,6 +511,8 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		       mqtt_topic, mqtt_username, mqtt_password,
 		       grpc_protobuf, grpc_service_name, grpc_method, grpc_body, grpc_enable_tls,
 		       docker_host_id, docker_container_id,
+		       snmp_community, snmp_oid, snmp_version, snmp_expected,
+		       service_name, manual_status, parent_id,
 		       created_at, updated_at
 		FROM monitors WHERE push_token = ? AND push_token != ''
 	`, token).Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.IntervalSeconds,
@@ -512,6 +530,8 @@ func (s *MonitorStore) GetByPushToken(token string) (*Monitor, error) {
 		&m.MQTTTopic, &m.MQTTUsername, &m.MQTTPassword,
 		&m.GRPCProtobuf, &m.GRPCServiceName, &m.GRPCMethod, &m.GRPCBody, &m.GRPCEnableTLS,
 		&m.DockerHostID, &m.DockerContainerID,
+		&m.SNMPCommunity, &m.SNMPOid, &m.SNMPVersion, &m.SNMPExpected,
+		&m.ServiceName, &m.ManualStatus, &m.ParentID,
 		&m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
