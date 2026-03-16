@@ -105,21 +105,87 @@ See `FEATURES.md` for current status of each item.
 
 ---
 
-## Phase 4 — More Notification Providers *(parallel with Phase 3)*
+## Phase 4 — More Notification Providers ✅ Complete
 
-### 4.1 PagerDuty
-- `notifier/pagerduty.go`; routing key + severity; Events API v2
+All 48 providers are implemented and registered in `internal/notifier/notifier.go`.
+Every provider has unit tests (field-validation + `httptest` HTTP roundtrip).
 
-### 4.2 Gotify
-- `notifier/gotify.go`; server URL + app token + priority
+### 4.1 Webhook / Messaging Platforms
+| Key | Provider |
+|-----|---------|
+| `webhook` | Generic JSON webhook |
+| `telegram` | Telegram Bot API |
+| `slack` | Slack Incoming Webhooks |
+| `discord` | Discord Webhooks |
+| `ntfy` | ntfy self-hosted push |
+| `mattermost` | Mattermost Webhooks |
+| `rocketchat` | Rocket.Chat Webhooks |
+| `dingding` | DingTalk (钉钉) |
+| `feishu` | Feishu / Lark |
+| `googlechat` | Google Chat Spaces |
+| `teams` | Microsoft Teams Webhooks |
+| `wecom` | WeCom (企业微信) |
+| `yzj` | YZJ (云之家) |
+| `lunasea` | LunaSea push |
 
-### 4.3 Pushover
-- `notifier/pushover.go`; user key + API token + optional device
+### 4.2 Mobile / Desktop Push
+| Key | Provider |
+|-----|---------|
+| `gotify` | Gotify self-hosted |
+| `bark` | Bark (iOS) |
+| `gorush` | Gorush push gateway |
+| `pushover` | Pushover |
+| `pushplus` | PushPlus (微信) |
+| `serverchan` | Server酱 (ServerChan) |
+| `line` | LINE Notify |
+| `homeassistant` | Home Assistant |
 
-### 4.4 Matrix
-- `notifier/matrix.go`; home server + access token + room ID
+### 4.3 Multi-Field / Complex Providers
+| Key | Provider |
+|-----|---------|
+| `pagerduty` | PagerDuty Events API v2 |
+| `matrix` | Matrix (Element) |
+| `signal` | Signal via signal-cli-rest-api |
+| `waha` | WAHA WhatsApp HTTP API |
+| `whapi` | Whapi.cloud WhatsApp |
+| `onesender` | OneSender |
+| `onebot` | OneBot (QQ) |
+| `evolution` | Evolution API (WhatsApp) |
 
-Register all in `notifier/registry.go` + `notification_form.html`.
+### 4.4 Email
+| Key | Provider |
+|-----|---------|
+| `email` | SMTP |
+| `sendgrid` | SendGrid |
+| `resend` | Resend |
+| `twilio` | Twilio SMS |
+
+### 4.5 SMS
+| Key | Provider |
+|-----|---------|
+| `46elks` | 46elks |
+| `brevo` | Brevo (Sendinblue) SMS |
+| `callmebot` | CallMeBot (WhatsApp/Signal) |
+| `cellsynt` | Cellsynt |
+| `freemobile` | Free Mobile (France) |
+| `gtxmessaging` | GTX Messaging |
+| `octopush` | Octopush |
+| `promosms` | PromoSMS (Poland) |
+| `serwersms` | SerwerSMS (Poland) |
+| `sevenio` | seven.io (sms77) |
+| `smsc` | SMSC.ru |
+| `smseagle` | SMSEagle hardware |
+| `smsir` | SMS.ir (Iran) |
+| `teltonika` | Teltonika router SMS |
+
+### 4.6 File Structure
+- `internal/notifier/notifier.go` — `Registry` map + `Notifier.Send()`
+- `internal/notifier/webhook_providers.go` — Mattermost, RocketChat, DingDing, Feishu, GoogleChat, Teams, WeCom, YZJ, LunaSea
+- `internal/notifier/token_providers.go` — Gotify, Bark, Gorush, PushPlus, ServerChan, LINE, HomeAssistant
+- `internal/notifier/multifield_providers.go` — PagerDuty, Pushover, Matrix, Signal, WAHA, Whapi, OneSender, OneBot, Evolution
+- `internal/notifier/email_providers.go` — SendGrid, Resend, Twilio
+- `internal/notifier/sms_providers.go` — 46elks, Brevo, CallMeBot, Cellsynt, FreeMobile, GTXMessaging, Octopush
+- `internal/notifier/sms_providers2.go` — PromoSMS, SerwerSMS, SevenIO, SMSC, SMSEagle, SMS.ir, Teltonika
 
 ---
 

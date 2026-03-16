@@ -34,12 +34,62 @@ type Provider interface {
 
 // Registry maps provider type names to their implementations.
 var Registry = map[string]Provider{
+	// Core
 	"webhook":  &WebhookProvider{},
 	"telegram": &TelegramProvider{},
 	"email":    &EmailProvider{},
 	"slack":    &SlackProvider{},
 	"discord":  &DiscordProvider{},
 	"ntfy":     &NtfyProvider{},
+	// Chat / webhook-style
+	"mattermost": &MattermostProvider{},
+	"rocketchat": &RocketChatProvider{},
+	"dingding":   &DingDingProvider{},
+	"feishu":     &FeishuProvider{},
+	"googlechat": &GoogleChatProvider{},
+	"teams":      &TeamsProvider{},
+	"wecom":      &WeComProvider{},
+	"yzj":        &YZJProvider{},
+	"lunasea":    &LunaSeaProvider{},
+	// Push / self-hosted
+	"gotify":        &GotifyProvider{},
+	"bark":          &BarkProvider{},
+	"gorush":        &GorushProvider{},
+	"pushover":      &PushoverProvider{},
+	"pushplus":      &PushPlusProvider{},
+	"serverchan":    &ServerChanProvider{},
+	"line":          &LINEProvider{},
+	"homeassistant": &HomeAssistantProvider{},
+	// Incident management
+	"pagerduty": &PagerDutyProvider{},
+	// Matrix
+	"matrix": &MatrixProvider{},
+	// Messaging APIs
+	"signal":    &SignalProvider{},
+	"waha":      &WAHAProvider{},
+	"whapi":     &WhapiProvider{},
+	"onesender": &OneSenderProvider{},
+	"onebot":    &OneBotProvider{},
+	"evolution": &EvolutionProvider{},
+	// Transactional email
+	"sendgrid": &SendGridProvider{},
+	"resend":   &ResendProvider{},
+	"twilio":   &TwilioProvider{},
+	// SMS APIs
+	"46elks":       &ElksProvider{},
+	"brevo":        &BrevoProvider{},
+	"callmebot":    &CallMeBotProvider{},
+	"cellsynt":     &CellsyntProvider{},
+	"freemobile":   &FreeMobileProvider{},
+	"gtxmessaging": &GTXMessagingProvider{},
+	"octopush":     &OctopushProvider{},
+	"promosms":     &PromoSMSProvider{},
+	"serwersms":    &SerwerSMSProvider{},
+	"sevenio":      &SevenIOProvider{},
+	"smsc":         &SMSCProvider{},
+	"smseagle":     &SMSEagleProvider{},
+	"smsir":        &SMSIrProvider{},
+	"teltonika":    &TeltonikaProvider{},
 }
 
 // SendResult holds the outcome of a single provider send attempt.

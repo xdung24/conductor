@@ -84,86 +84,86 @@ This document tracks which features are implemented, in progress, or planned.
 | Notification providers: Discord | ✅ Done | |
 | Notification providers: ntfy | ✅ Done | |
 | Notification providers: 360Messenger | ⬜ Planned | |
-| Notification providers: 46Elks | ⬜ Planned | SMS via 46elks API |
+| Notification providers: 46Elks | ✅ Done | SMS via 46elks API |
 | Notification providers: Alerta | ⬜ Planned | |
 | Notification providers: AlertNow | ⬜ Planned | |
 | Notification providers: Aliyun SMS | ⬜ Planned | |
 | Notification providers: Apprise | ⬜ Planned | Meta-provider wrapping 50+ services |
 | Notification providers: Bale | ⬜ Planned | |
-| Notification providers: Bark | ⬜ Planned | iOS push via Bark app |
+| Notification providers: Bark | ✅ Done | iOS push via Bark app |
 | Notification providers: Bitrix24 | ⬜ Planned | |
-| Notification providers: Brevo | ⬜ Planned | Transactional email/SMS |
-| Notification providers: CallMeBot | ⬜ Planned | WhatsApp / Signal via CallMeBot |
-| Notification providers: Cellsynt | ⬜ Planned | SMS |
+| Notification providers: Brevo | ✅ Done | Transactional email/SMS |
+| Notification providers: CallMeBot | ✅ Done | WhatsApp / Signal via CallMeBot |
+| Notification providers: Cellsynt | ✅ Done | SMS |
 | Notification providers: ClickSend SMS | ⬜ Planned | |
-| Notification providers: DingDing | ⬜ Planned | DingTalk webhook |
-| Notification providers: Evolution | ⬜ Planned | WhatsApp via Evolution API |
-| Notification providers: Feishu | ⬜ Planned | Lark / Feishu webhook |
+| Notification providers: DingDing | ✅ Done | DingTalk webhook |
+| Notification providers: Evolution | ✅ Done | WhatsApp via Evolution API |
+| Notification providers: Feishu | ✅ Done | Lark / Feishu webhook |
 | Notification providers: FlashDuty | ⬜ Planned | |
 | Notification providers: Fluxer | ⬜ Planned | |
-| Notification providers: FreeMobile | ⬜ Planned | French SMS |
+| Notification providers: FreeMobile | ✅ Done | French SMS |
 | Notification providers: GoAlert | ⬜ Planned | |
-| Notification providers: Google Chat | ⬜ Planned | Google Chat webhook |
+| Notification providers: Google Chat | ✅ Done | Google Chat webhook |
 | Notification providers: Google Sheets | ⬜ Planned | Append rows to a spreadsheet |
-| Notification providers: Gorush | ⬜ Planned | Push via Gorush server |
-| Notification providers: Gotify | ⬜ Planned | Self-hosted push; server URL + app token |
+| Notification providers: Gorush | ✅ Done | Push via Gorush server |
+| Notification providers: Gotify | ✅ Done | Self-hosted push; server URL + app token |
 | Notification providers: Grafana OnCall | ⬜ Planned | |
-| Notification providers: GTX Messaging | ⬜ Planned | SMS |
+| Notification providers: GTX Messaging | ✅ Done | SMS |
 | Notification providers: HaloPSA | ⬜ Planned | |
 | Notification providers: Heii On-Call | ⬜ Planned | |
-| Notification providers: Home Assistant | ⬜ Planned | HA notification service |
+| Notification providers: Home Assistant | ✅ Done | HA notification service |
 | Notification providers: Jira Service Management | ⬜ Planned | Create incidents |
 | Notification providers: Keep | ⬜ Planned | |
 | Notification providers: Kook | ⬜ Planned | |
-| Notification providers: LINE | ⬜ Planned | LINE Notify |
-| Notification providers: LunaSea | ⬜ Planned | Self-hosted push |
-| Notification providers: Matrix | ⬜ Planned | Home server + access token + room ID |
-| Notification providers: Mattermost | ⬜ Planned | Incoming webhook |
+| Notification providers: LINE | ✅ Done | LINE Notify |
+| Notification providers: LunaSea | ✅ Done | Self-hosted push |
+| Notification providers: Matrix | ✅ Done | Home server + access token + room ID |
+| Notification providers: Mattermost | ✅ Done | Incoming webhook |
 | Notification providers: Nextcloud Talk | ⬜ Planned | |
 | Notification providers: Nostr | ⬜ Planned | |
 | Notification providers: Notifery | ⬜ Planned | |
-| Notification providers: Octopush | ⬜ Planned | SMS |
-| Notification providers: OneBot | ⬜ Planned | QQ via OneBot protocol |
+| Notification providers: Octopush | ✅ Done | SMS |
+| Notification providers: OneBot | ✅ Done | QQ via OneBot protocol |
 | Notification providers: OneChat | ⬜ Planned | |
-| Notification providers: OneSender | ⬜ Planned | WhatsApp |
+| Notification providers: OneSender | ✅ Done | WhatsApp |
 | Notification providers: OpsGenie | ⬜ Planned | |
-| Notification providers: PagerDuty | ⬜ Planned | Events API v2; routing key + severity |
+| Notification providers: PagerDuty | ✅ Done | Events API v2; routing key + severity |
 | Notification providers: PagerTree | ⬜ Planned | |
-| Notification providers: PromoSMS | ⬜ Planned | SMS |
+| Notification providers: PromoSMS | ✅ Done | SMS |
 | Notification providers: Pumble | ⬜ Planned | |
 | Notification providers: Pushbullet | ⬜ Planned | |
 | Notification providers: PushDeer | ⬜ Planned | |
-| Notification providers: Pushover | ⬜ Planned | User key + API token + optional device |
-| Notification providers: PushPlus | ⬜ Planned | WeChat push |
+| Notification providers: Pushover | ✅ Done | User key + API token + optional device |
+| Notification providers: PushPlus | ✅ Done | WeChat push |
 | Notification providers: Pushy | ⬜ Planned | |
-| Notification providers: Resend | ⬜ Planned | Transactional email via Resend API |
-| Notification providers: Rocket.Chat | ⬜ Planned | Incoming webhook |
-| Notification providers: SendGrid | ⬜ Planned | Transactional email |
-| Notification providers: ServerChan | ⬜ Planned | WeChat push |
-| Notification providers: SerwerSMS | ⬜ Planned | SMS (Poland) |
-| Notification providers: Seven.io | ⬜ Planned | SMS |
-| Notification providers: Signal | ⬜ Planned | Via signal-cli REST API |
+| Notification providers: Resend | ✅ Done | Transactional email via Resend API |
+| Notification providers: Rocket.Chat | ✅ Done | Incoming webhook |
+| Notification providers: SendGrid | ✅ Done | Transactional email |
+| Notification providers: ServerChan | ✅ Done | WeChat push |
+| Notification providers: SerwerSMS | ✅ Done | SMS (Poland) |
+| Notification providers: Seven.io | ✅ Done | SMS |
+| Notification providers: Signal | ✅ Done | Via signal-cli REST API |
 | Notification providers: SIGNL4 | ⬜ Planned | |
-| Notification providers: SMSC | ⬜ Planned | SMS |
-| Notification providers: SMSEagle | ⬜ Planned | SMS via SMSEagle device |
-| Notification providers: SMS.ir | ⬜ Planned | SMS (Iran) |
+| Notification providers: SMSC | ✅ Done | SMS |
+| Notification providers: SMSEagle | ✅ Done | SMS via SMSEagle device |
+| Notification providers: SMS.ir | ✅ Done | SMS (Iran) |
 | Notification providers: SMS Manager | ⬜ Planned | |
 | Notification providers: SMS Planet | ⬜ Planned | |
 | Notification providers: Splunk | ⬜ Planned | |
 | Notification providers: SpugPush | ⬜ Planned | |
 | Notification providers: Squadcast | ⬜ Planned | |
 | Notification providers: Stackfield | ⬜ Planned | |
-| Notification providers: Microsoft Teams | ⬜ Planned | Incoming webhook |
+| Notification providers: Microsoft Teams | ✅ Done | Incoming webhook |
 | Notification providers: Techulus Push | ⬜ Planned | |
-| Notification providers: Teltonika | ⬜ Planned | SMS via Teltonika router |
+| Notification providers: Teltonika | ✅ Done | SMS via Teltonika router |
 | Notification providers: Threema | ⬜ Planned | |
-| Notification providers: Twilio | ⬜ Planned | SMS / voice |
-| Notification providers: WAHA | ⬜ Planned | WhatsApp HTTP API |
+| Notification providers: Twilio | ✅ Done | SMS / voice |
+| Notification providers: WAHA | ✅ Done | WhatsApp HTTP API |
 | Notification providers: WebPush | ⬜ Planned | Browser push notifications |
-| Notification providers: WeCom | ⬜ Planned | WeCom (WeChat Work) webhook |
-| Notification providers: Whapi | ⬜ Planned | WhatsApp via Whapi |
+| Notification providers: WeCom | ✅ Done | WeCom (WeChat Work) webhook |
+| Notification providers: Whapi | ✅ Done | WhatsApp via Whapi |
 | Notification providers: WPush | ⬜ Planned | |
-| Notification providers: YZJ | ⬜ Planned | Yunji via webhook |
+| Notification providers: YZJ | ✅ Done | Yunji via webhook |
 | Notification providers: Zoho Cliq | ⬜ Planned | |
 | Remote browser config | ⬜ Planned | Chromium endpoint for real-browser checks |
 | Cloudflare Tunnel integration | ⬜ Planned | Expose via cloudflared without open port |
