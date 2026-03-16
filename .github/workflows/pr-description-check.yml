@@ -25,7 +25,7 @@ jobs:
             const body = (pr && pr.body) ? pr.body : "";
             const requiredPhrase = "avoid unnecessary back and forth";
 
-            const exclude = ["UptimeKumaBot", "Copilot", "copilot-swe-agent"];
+            const exclude = ["Copilot", "copilot-swe-agent"];
             const excludeLower = exclude.map((e) => e.toLowerCase());
             const author = pr?.user?.login || "";
 
