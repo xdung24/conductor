@@ -33,6 +33,13 @@ func templateFuncMap() template.FuncMap {
 			}
 			return m[key]
 		},
+		// slice returns a substring s[start:end], clamping end to len(s).
+		"slice": func(s string, start, end int) string {
+			if end > len(s) {
+				end = len(s)
+			}
+			return s[start:end]
+		},
 	}
 }
 
@@ -59,14 +66,21 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// Setup wizard (only accessible when no users exist)
-	r.GET("/setup", h.SetupPage)
-	r.POST("/setup", h.SetupSubmit)
+	// Setup wizard removed — first-user registration is handled via a
+	// time-limited token printed to the console on first startup.
+	// Keep a redirect for anyone who bookmarked /setup.
+	r.GET("/setup", func(c *gin.Context) { c.Redirect(http.StatusFound, "/login") })
 
 	// Auth
 	r.GET("/login", h.LoginPage)
 	r.POST("/login", h.LoginSubmit)
+	r.GET("/login/2fa", h.TwoFALoginPage)
+	r.POST("/login/2fa", h.TwoFALoginSubmit)
 	r.GET("/logout", h.Logout)
+
+	// Self-registration (open or invite-token gated)
+	r.GET("/register", h.RegisterPage)
+	r.POST("/register", h.RegisterSubmit)
 
 	// Push endpoint (unauthenticated — external services call this to signal UP).
 	r.GET("/push/:token", h.MonitorPush)
@@ -102,14 +116,6 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.POST("/notifications/:id/test", h.NotificationTest)
 		auth.GET("/notifications/logs", h.NotificationLogList)
 
-		// User management
-		auth.GET("/admin/users", h.UserList)
-		auth.GET("/admin/users/new", h.UserNew)
-		auth.POST("/admin/users", h.UserCreate)
-		auth.GET("/admin/users/:username/password", h.UserPasswordPage)
-		auth.POST("/admin/users/:username/password", h.UserChangePassword)
-		auth.POST("/admin/users/:username/delete", h.UserDelete)
-
 		// Tags
 		auth.GET("/tags", h.TagList)
 		auth.GET("/tags/new", h.TagNew)
@@ -134,8 +140,39 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.POST("/maintenance/:id", h.MaintenanceUpdate)
 		auth.POST("/maintenance/:id/delete", h.MaintenanceDelete)
 
-		// Settings
+		// API Keys
+		auth.GET("/api-keys", h.APIKeyList)
+		auth.POST("/api-keys", h.APIKeyCreate)
+		auth.POST("/api-keys/:id/delete", h.APIKeyDelete)
+
+		// Account — 2FA
+		auth.GET("/account/2fa", h.TwoFAPage)
+		auth.POST("/account/2fa/setup", h.TwoFASetupPage)
+		auth.POST("/account/2fa/verify", h.TwoFAVerify)
+		auth.POST("/account/2fa/disable", h.TwoFADisable)
+
+		// Settings (per-user, e.g. theme)
 		auth.POST("/settings/theme", h.ThemeToggle)
+	}
+
+	// Admin-only routes (requires both authentication and admin role).
+	admin := r.Group("/")
+	admin.Use(h.AuthRequired(), h.AdminRequired())
+	{
+		// User management
+		admin.GET("/admin/users", h.UserList)
+		admin.GET("/admin/users/new", h.UserNew)
+		admin.POST("/admin/users", h.UserCreate)
+		admin.GET("/admin/users/:username/password", h.UserPasswordPage)
+		admin.POST("/admin/users/:username/password", h.UserChangePassword)
+		admin.POST("/admin/users/:username/delete", h.UserDelete)
+		admin.POST("/admin/users/:username/role", h.UserSetAdmin)
+		admin.POST("/admin/users/invite", h.InviteGenerate)
+		admin.POST("/admin/users/invites/:token/delete", h.InviteRevoke)
+
+		// Admin settings
+		admin.GET("/admin/settings", h.SettingsPage)
+		admin.POST("/admin/settings", h.SettingsUpdate)
 	}
 
 	return r

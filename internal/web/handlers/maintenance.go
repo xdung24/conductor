@@ -20,22 +20,22 @@ func (h *Handler) MaintenanceList(c *gin.Context) {
 	if flash != "" {
 		c.SetCookie("sm_flash", "", -1, "/", "", false, true)
 	}
-	c.HTML(http.StatusOK, "maintenance_list.html", gin.H{
+	c.HTML(http.StatusOK, "maintenance_list.html", h.pageData(c, gin.H{
 		"Windows": windows,
 		"Flash":   flash,
-	})
+	}))
 }
 
 // MaintenanceNew renders the create form.
 func (h *Handler) MaintenanceNew(c *gin.Context) {
 	monitors, _ := h.monitorStore(c).List()
-	c.HTML(http.StatusOK, "maintenance_form.html", gin.H{
+	c.HTML(http.StatusOK, "maintenance_form.html", h.pageData(c, gin.H{
 		"Window":           &models.MaintenanceWindow{Active: true},
 		"IsNew":            true,
 		"AllMonitors":      monitors,
 		"LinkedMonitorIDs": map[int64]bool{},
 		"Error":            "",
-	})
+	}))
 }
 
 // MaintenanceCreate handles the create form submission.
@@ -79,13 +79,13 @@ func (h *Handler) MaintenanceEdit(c *gin.Context) {
 	for _, id := range linkedIDs {
 		linked[id] = true
 	}
-	c.HTML(http.StatusOK, "maintenance_form.html", gin.H{
+	c.HTML(http.StatusOK, "maintenance_form.html", h.pageData(c, gin.H{
 		"Window":           window,
 		"IsNew":            false,
 		"AllMonitors":      monitors,
 		"LinkedMonitorIDs": linked,
 		"Error":            "",
-	})
+	}))
 }
 
 // MaintenanceUpdate handles the edit form submission.

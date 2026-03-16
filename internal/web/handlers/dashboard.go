@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pquerna/otp/totp"
 	"github.com/xdung24/service-monitor/internal/config"
 	"github.com/xdung24/service-monitor/internal/database"
 	"github.com/xdung24/service-monitor/internal/models"
@@ -28,6 +30,7 @@ const sessionCookieName = "sm_session"
 const (
 	ctxKeyUserDB   = "sm_user_db"
 	ctxKeyUsername = "sm_username"
+	ctxKeyIsAdmin  = "sm_is_admin"
 )
 
 // Handler holds shared dependencies for all HTTP handlers.
@@ -87,10 +90,37 @@ func (h *Handler) schedFor(c *gin.Context) *scheduler.Scheduler {
 // Middleware
 // ---------------------------------------------------------------------------
 
-// AuthRequired is a Gin middleware that redirects unauthenticated requests to /login.
-// It also opens the per-user database and injects it into the request context.
+// AuthRequired is a Gin middleware that ensures the caller is authenticated.
+// It accepts both a session cookie (browser login) and an
+// "Authorization: Bearer <api-key>" header (programmatic access).
 func (h *Handler) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// --- Bearer token (API key) ---
+		if authHeader := c.GetHeader("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
+			plainToken := strings.TrimPrefix(authHeader, "Bearer ")
+			username, err := h.apiKeyStore().Verify(plainToken)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
+				return
+			}
+			db, err := h.registry.Get(username)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+				return
+			}
+			u, err := h.users.GetByUsername(username)
+			if err != nil || u == nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+				return
+			}
+			c.Set(ctxKeyUserDB, db)
+			c.Set(ctxKeyUsername, username)
+			c.Set(ctxKeyIsAdmin, u.IsAdmin)
+			c.Next()
+			return
+		}
+
+		// --- Session cookie ---
 		cookie, err := c.Cookie(sessionCookieName)
 		if err != nil || !h.validSession(cookie) {
 			c.Redirect(http.StatusFound, "/login")
@@ -104,10 +134,47 @@ func (h *Handler) AuthRequired() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		u, err := h.users.GetByUsername(username)
+		if err != nil || u == nil {
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
 		c.Set(ctxKeyUserDB, db)
 		c.Set(ctxKeyUsername, username)
+		c.Set(ctxKeyIsAdmin, u.IsAdmin)
 		c.Next()
 	}
+}
+
+// AdminRequired is a Gin middleware that allows only admin users.
+// Must be used after AuthRequired.
+func (h *Handler) AdminRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !c.GetBool(ctxKeyIsAdmin) {
+			c.HTML(http.StatusForbidden, "error.html", gin.H{"Error": "Admin access required"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// isAdmin reports whether the current request is from an admin user.
+func (h *Handler) isAdmin(c *gin.Context) bool {
+	return c.GetBool(ctxKeyIsAdmin)
+}
+
+// pageData returns a gin.H with common authenticated-page fields (IsAdmin)
+// merged with any page-specific fields supplied by the caller.
+func (h *Handler) pageData(c *gin.Context, extra gin.H) gin.H {
+	data := gin.H{
+		"IsAdmin": h.isAdmin(c),
+	}
+	for k, v := range extra {
+		data[k] = v
+	}
+	return data
 }
 
 func (h *Handler) validSession(token string) bool {
@@ -120,79 +187,23 @@ func (h *Handler) validSession(token string) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Setup
-// ---------------------------------------------------------------------------
-
-// SetupPage renders the initial setup page.
-func (h *Handler) SetupPage(c *gin.Context) {
-	count, _ := h.users.Count()
-	if count > 0 {
-		c.Redirect(http.StatusFound, "/login")
-		return
-	}
-	c.HTML(http.StatusOK, "setup.html", gin.H{"Error": ""})
-}
-
-// SetupSubmit handles the setup form, creating the first admin user.
-func (h *Handler) SetupSubmit(c *gin.Context) {
-	count, _ := h.users.Count()
-	if count > 0 {
-		c.Redirect(http.StatusFound, "/login")
-		return
-	}
-
-	username := c.PostForm("username")
-	password := c.PostForm("password")
-	confirm := c.PostForm("confirm_password")
-
-	if username == "" || password == "" {
-		c.HTML(http.StatusBadRequest, "setup.html", gin.H{"Error": "Username and password are required"})
-		return
-	}
-	if password != confirm {
-		c.HTML(http.StatusBadRequest, "setup.html", gin.H{"Error": "Passwords do not match"})
-		return
-	}
-	if len(password) < 8 {
-		c.HTML(http.StatusBadRequest, "setup.html", gin.H{"Error": "Password must be at least 8 characters"})
-		return
-	}
-
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "setup.html", gin.H{"Error": "Internal error"})
-		return
-	}
-
-	if err := h.users.Create(username, string(hashed)); err != nil {
-		c.HTML(http.StatusInternalServerError, "setup.html", gin.H{"Error": "Failed to create user"})
-		return
-	}
-
-	// Initialize per-user database and start the scheduler for the new user.
-	db, err := h.registry.Get(username)
-	if err == nil {
-		h.msched.StartForUser(username, db)
-	}
-
-	c.Redirect(http.StatusFound, "/login")
-}
-
-// ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 
 // LoginPage renders the login form.
+// When no users exist yet, a notice is shown directing the operator to the
+// console-printed setup URL.
 func (h *Handler) LoginPage(c *gin.Context) {
 	count, _ := h.users.Count()
-	if count == 0 {
-		c.Redirect(http.StatusFound, "/setup")
-		return
-	}
-	c.HTML(http.StatusOK, "login.html", gin.H{"Error": ""})
+	c.HTML(http.StatusOK, "login.html", gin.H{
+		"Error":     "",
+		"SetupMode": count == 0,
+	})
 }
 
 // LoginSubmit validates credentials and sets a session cookie.
+// If the user has 2FA enabled, a short-lived pending cookie is issued instead
+// and the browser is redirected to the TOTP verification step.
 func (h *Handler) LoginSubmit(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
@@ -208,6 +219,64 @@ func (h *Handler) LoginSubmit(c *gin.Context) {
 		return
 	}
 
+	// If 2FA is enabled, issue a short-lived pending token and redirect to the TOTP step.
+	_, enabled, _ := h.users.GetTOTP(username)
+	if enabled {
+		pendingToken := signPendingToken(username, h.cfg.SecretKey)
+		c.SetCookie("sm_pending", pendingToken, int(5*time.Minute/time.Second), "/", "", false, true)
+		c.Redirect(http.StatusFound, "/login/2fa")
+		return
+	}
+
+	token := signToken(username, h.cfg.SecretKey)
+	c.SetCookie(sessionCookieName, token, int(24*time.Hour/time.Second), "/", "", false, true)
+	c.Redirect(http.StatusFound, "/")
+}
+
+// TwoFALoginPage renders the TOTP verification step of the login flow.
+func (h *Handler) TwoFALoginPage(c *gin.Context) {
+	pending, err := c.Cookie("sm_pending")
+	if err != nil {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	_, ok := verifyPendingToken(pending, h.cfg.SecretKey)
+	if !ok {
+		c.SetCookie("sm_pending", "", -1, "/", "", false, true)
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	c.HTML(http.StatusOK, "login_2fa.html", gin.H{"Error": ""})
+}
+
+// TwoFALoginSubmit validates the TOTP code and completes the login.
+func (h *Handler) TwoFALoginSubmit(c *gin.Context) {
+	pending, err := c.Cookie("sm_pending")
+	if err != nil {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	username, ok := verifyPendingToken(pending, h.cfg.SecretKey)
+	if !ok {
+		c.SetCookie("sm_pending", "", -1, "/", "", false, true)
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	code := strings.TrimSpace(c.PostForm("code"))
+	secret, enabled, totpErr := h.users.GetTOTP(username)
+	if totpErr != nil || !enabled || secret == "" {
+		c.SetCookie("sm_pending", "", -1, "/", "", false, true)
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	if !totp.Validate(code, secret) {
+		c.HTML(http.StatusUnauthorized, "login_2fa.html", gin.H{"Error": "Invalid code. Please try again."})
+		return
+	}
+
+	c.SetCookie("sm_pending", "", -1, "/", "", false, true)
 	token := signToken(username, h.cfg.SecretKey)
 	c.SetCookie(sessionCookieName, token, int(24*time.Hour/time.Second), "/", "", false, true)
 	c.Redirect(http.StatusFound, "/")
@@ -256,12 +325,12 @@ func (h *Handler) Dashboard(c *gin.Context) {
 		sparklines[m.ID] = computeSparklineSVG(beats)
 	}
 
-	c.HTML(http.StatusOK, "dashboard.html", gin.H{
+	c.HTML(http.StatusOK, "dashboard.html", h.pageData(c, gin.H{
 		"Monitors":   monitors,
 		"Sparklines": sparklines,
 		"Tags":       tagMap,
 		"Username":   h.username(c),
-	})
+	}))
 }
 
 // computeSparklineSVG generates an inline SVG polyline from heartbeat data.

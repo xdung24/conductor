@@ -19,20 +19,20 @@ func (h *Handler) TagList(c *gin.Context) {
 	if flash != "" {
 		c.SetCookie("sm_flash", "", -1, "/", "", false, true)
 	}
-	c.HTML(http.StatusOK, "tags.html", gin.H{
+	c.HTML(http.StatusOK, "tags.html", h.pageData(c, gin.H{
 		"Tags":  tags,
 		"Flash": flash,
-	})
+	}))
 }
 
 // TagNew renders the create-tag form.
 func (h *Handler) TagNew(c *gin.Context) {
-	c.HTML(http.StatusOK, "tags.html", gin.H{
+	c.HTML(http.StatusOK, "tags.html", h.pageData(c, gin.H{
 		"Tags":    []*models.Tag{},
 		"NewForm": true,
 		"Tag":     &models.Tag{Color: "#6366f1"},
 		"Error":   "",
-	})
+	}))
 }
 
 // TagCreate handles tag creation form submission.
@@ -77,12 +77,12 @@ func (h *Handler) TagEdit(c *gin.Context) {
 		return
 	}
 	tags, _ := h.tagStore(c).List()
-	c.HTML(http.StatusOK, "tags.html", gin.H{
+	c.HTML(http.StatusOK, "tags.html", h.pageData(c, gin.H{
 		"Tags":     tags,
 		"EditForm": true,
 		"Tag":      tag,
 		"Error":    "",
-	})
+	}))
 }
 
 // TagUpdate handles tag edit form submission.

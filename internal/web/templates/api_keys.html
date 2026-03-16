@@ -1,0 +1,118 @@
+{{ define "api_keys.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Keys — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">API Keys</h1>
+</div>
+
+{{ if .Flash }}
+<div class="alert alert-success" style="margin-bottom:1rem; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399;">
+    {{ .Flash }}
+</div>
+{{ end }}
+
+{{ if .Error }}
+<div class="alert alert-danger" style="margin-bottom:1rem;">{{ .Error }}</div>
+{{ end }}
+
+{{ if .NewToken }}
+<div style="margin-bottom:1.5rem; padding:1.25rem; border-radius:0.75rem;
+            background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.4);">
+    <p style="font-size:0.8rem; color:#a5b4fc; font-weight:600; margin-bottom:0.6rem; text-transform:uppercase; letter-spacing:0.05em;">
+        &#9888; Copy your token now — it won't be shown again
+    </p>
+    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+        <code id="new-token" style="font-family:monospace; font-size:0.875rem; color:#e2e8f0;
+              background:#0f172a; padding:0.5rem 0.75rem; border-radius:0.4rem;
+              border:1px solid #334155; word-break:break-all; flex:1;">{{ .NewToken }}</code>
+        <button onclick="copyToken()" style="flex-shrink:0;"
+                class="btn btn-ghost" id="copy-btn">Copy</button>
+    </div>
+</div>
+<script>
+function copyToken() {
+    var t = document.getElementById('new-token').textContent.trim();
+    navigator.clipboard.writeText(t).then(function() {
+        var btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+    });
+}
+</script>
+{{ end }}
+
+<!-- Create form -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2 style="font-size:0.9rem; font-weight:600; color:#94a3b8; text-transform:uppercase;
+               letter-spacing:0.05em; margin-bottom:1rem;">Create New API Key</h2>
+    <form method="POST" action="/api-keys" style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:200px; margin-bottom:0;">
+            <label for="name" style="font-size:0.8rem;">Key Name / Description</label>
+            <input class="form-control" type="text" id="name" name="name"
+                   placeholder="e.g. CI pipeline, Home server" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="flex-shrink:0;">Generate Key</button>
+    </form>
+    <p style="font-size:0.75rem; color:#475569; margin-top:0.75rem;">
+        Use the generated token in the <code>Authorization: Bearer &lt;token&gt;</code> HTTP header
+        to access all protected endpoints programmatically.
+    </p>
+</div>
+
+<!-- Keys list -->
+{{ if .Keys }}
+<div class="card" style="padding:0; overflow:hidden;">
+    <table class="table" style="margin:0;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Created</th>
+                <th>Last Used</th>
+                <th>Token (hash prefix)</th>
+                <th style="text-align:center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .Keys }}
+        <tr>
+            <td style="font-weight:500; color:#e2e8f0;">{{ .Name }}</td>
+            <td style="font-size:0.8125rem; color:#94a3b8; white-space:nowrap;">
+                {{ .CreatedAt.Format "2006-01-02 15:04" }}
+            </td>
+            <td style="font-size:0.8125rem; color:#94a3b8; white-space:nowrap;">
+                {{ if .LastUsedAt }}{{ .LastUsedAt.Format "2006-01-02 15:04" }}{{ else }}&mdash;{{ end }}
+            </td>
+            <td style="font-family:monospace; font-size:0.75rem; color:#64748b;">
+                {{ slice .TokenHash 0 12 }}&hellip;
+            </td>
+            <td style="text-align:center;">
+                <form method="POST" action="/api-keys/{{ .ID }}/delete" style="display:inline;"
+                      onsubmit="return confirm('Revoke API key &quot;{{ .Name }}&quot;? Any services using it will lose access.')">
+                    <button type="submit" class="btn btn-sm btn-danger">Revoke</button>
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+{{ else }}
+<div class="card" style="text-align:center; padding:2.5rem; color:#64748b;">
+    <p style="font-size:1rem;">No API keys yet. Create one above to allow programmatic access.</p>
+</div>
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

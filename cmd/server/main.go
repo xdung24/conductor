@@ -59,6 +59,25 @@ func main() {
 	}
 	log.Printf("initialized %d user database(s)", len(existingUsers))
 
+	// On first startup (no users) generate a short-lived registration token and
+	// print the setup URL to the console so the operator can create the admin account.
+	if len(existingUsers) == 0 {
+		regTokenStore := models.NewRegistrationTokenStore(usersDB)
+		token, err := regTokenStore.Generate("system", 30*time.Minute)
+		if err != nil {
+			log.Printf("warning: failed to generate setup token: %v", err)
+		} else {
+			addr := cfg.ListenAddr
+			if len(addr) > 0 && addr[0] == ':' {
+				addr = "localhost" + addr
+			}
+			log.Printf("=================================================================")
+			log.Printf("  No users found — register your admin account (expires in 30 min)")
+			log.Printf("  http://%s/register?token=%s", addr, token)
+			log.Printf("=================================================================")
+		}
+	}
+
 	router := web.NewRouter(usersDB, registry, msched, cfg)
 
 	srv := &http.Server{

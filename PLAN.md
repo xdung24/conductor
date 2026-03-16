@@ -60,6 +60,16 @@ See `FEATURES.md` for current status of each item.
 - Login becomes two-step when enabled; `/account/2fa` setup page with QR code
 - Session: set a "needs-2fa" semaphore before full login
 
+### 2.3 Account registration
+- By default, new user can register account.
+- Admin can disable account registration from config.
+- Admin can generate a unique link to allow single registration.
+
+### 2.4 Authorization
+- Only admin can manage users
+- Only admin can manage monitors and notifications of all users.
+- Normal user can only see their monitors and notifications
+
 ---
 
 ## Phase 3 — New Monitor Types (A)

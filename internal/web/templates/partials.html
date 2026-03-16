@@ -78,7 +78,8 @@
     select.form-control option { background: #1e293b; }
 
     .alert { padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
-    .alert-danger { background: #450a0a; border: 1px solid #ef4444; color: #fca5a5; }
+    .alert-danger  { background: #450a0a; border: 1px solid #ef4444; color: #fca5a5; }
+    .alert-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
 
     .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #f1f5f9; }
     .text-muted { color: #64748b; font-size: 0.875rem; }
@@ -120,7 +121,12 @@
         <a href="/status-pages" style="color:#94a3b8; font-size:0.875rem;">Status Pages</a>
         <a href="/tags" style="color:#94a3b8; font-size:0.875rem;">Tags</a>
         <a href="/maintenance" style="color:#94a3b8; font-size:0.875rem;">Maintenance</a>
+        <a href="/api-keys" style="color:#94a3b8; font-size:0.875rem;">API Keys</a>
+        <a href="/account/2fa" style="color:#94a3b8; font-size:0.875rem;">2FA</a>
+        {{ if .IsAdmin }}
         <a href="/admin/users" style="color:#94a3b8; font-size:0.875rem;">Users</a>
+        <a href="/admin/settings" style="color:#94a3b8; font-size:0.875rem;">Settings</a>
+        {{ end }}
         <form method="POST" action="/settings/theme" style="display:inline; margin:0;">
             <button type="submit" title="Toggle theme"
                     style="background:none; border:1px solid #334155; border-radius:0.4rem; color:#94a3b8;

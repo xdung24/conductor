@@ -8,4 +8,5 @@ type User struct {
 	Username  string    `db:"username"`
 	Password  string    `db:"password"`
 	CreatedAt time.Time `db:"created_at"`
+	IsAdmin   bool      `db:"is_admin"`
 }

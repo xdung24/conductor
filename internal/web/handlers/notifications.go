@@ -31,21 +31,21 @@ func (h *Handler) NotificationList(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "notification_list.html", gin.H{
+	c.HTML(http.StatusOK, "notification_list.html", h.pageData(c, gin.H{
 		"Notifications": notifs,
 		"Tested":        testedName,
 		"FlashError":    c.Query("error"),
-	})
+	}))
 }
 
 // NotificationNew renders the new notification form.
 func (h *Handler) NotificationNew(c *gin.Context) {
-	c.HTML(http.StatusOK, "notification_form.html", gin.H{
+	c.HTML(http.StatusOK, "notification_form.html", h.pageData(c, gin.H{
 		"Notification": &models.Notification{Active: true},
 		"IsNew":        true,
 		"Error":        "",
 		"Config":       map[string]string{},
-	})
+	}))
 }
 
 // NotificationCreate handles new notification form submission.
@@ -78,12 +78,12 @@ func (h *Handler) NotificationEdit(c *gin.Context) {
 	if !ok {
 		return
 	}
-	c.HTML(http.StatusOK, "notification_form.html", gin.H{
+	c.HTML(http.StatusOK, "notification_form.html", h.pageData(c, gin.H{
 		"Notification": n,
 		"IsNew":        false,
 		"Error":        "",
 		"Config":       notificationConfigMap(n.Config),
-	})
+	}))
 }
 
 // NotificationUpdate handles the edit form submission.
@@ -183,7 +183,7 @@ func (h *Handler) NotificationLogList(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
 		return
 	}
-	c.HTML(http.StatusOK, "notification_log.html", gin.H{"Logs": logs})
+	c.HTML(http.StatusOK, "notification_log.html", h.pageData(c, gin.H{"Logs": logs}))
 }
 
 // ---------------------------------------------------------------------------

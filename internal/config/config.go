@@ -4,7 +4,9 @@ import (
 	"os"
 )
 
-// Config holds all application configuration.
+// Config holds all application configuration sourced from environment variables.
+// Runtime settings (e.g. registration_enabled) are stored in the database and
+// editable by the admin via the web UI.
 type Config struct {
 	ListenAddr string
 	DBPath     string

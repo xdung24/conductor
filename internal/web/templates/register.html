@@ -1,0 +1,61 @@
+{{ define "register.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Account — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    <div style="max-width:400px; margin:4rem auto; padding:1rem;">
+        <div style="text-align:center; margin-bottom:2rem;">
+            <h1 style="font-size:1.5rem; font-weight:700; color:#f1f5f9;">&#9829; <span style="color:#38bdf8;">Service</span>Monitor</h1>
+        </div>
+
+        {{ if .Disabled }}
+        <div class="card" style="text-align:center;">
+            <p style="font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">Registration is disabled</p>
+            <p style="color:#94a3b8; font-size:0.875rem; margin-bottom:1.5rem;">
+                New accounts can only be created by an administrator or via an invite link.
+            </p>
+            <a href="/login" class="btn btn-ghost">Back to login</a>
+        </div>
+        {{ else }}
+        <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:1.5rem; text-align:center;">Create Account</h2>
+            {{ if .Error }}
+            <div class="alert alert-danger">{{ .Error }}</div>
+            {{ end }}
+            <form method="POST" action="/register">
+                {{ if .Token }}
+                <input type="hidden" name="token" value="{{ .Token }}" />
+                {{ end }}
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input class="form-control" type="text" id="username" name="username"
+                           autocomplete="username" minlength="3" maxlength="32" required />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input class="form-control" type="password" id="password" name="password"
+                           autocomplete="new-password" minlength="8" required />
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input class="form-control" type="password" id="confirm_password" name="confirm_password"
+                           autocomplete="new-password" minlength="8" required />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:0.5rem;">
+                    Create Account
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:1rem;">
+                <a href="/login" style="font-size:0.875rem; color:#64748b;">Already have an account? Sign in</a>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+</body>
+</html>
+{{ end }}

@@ -19,7 +19,7 @@ import (
 func (h *Handler) MonitorNew(c *gin.Context) {
 	allNotifs, _ := h.notifStore(c).List()
 	allTags, _ := h.tagStore(c).List()
-	c.HTML(http.StatusOK, "monitor_form.html", gin.H{
+	c.HTML(http.StatusOK, "monitor_form.html", h.pageData(c, gin.H{
 		"Monitor":        &models.Monitor{IntervalSeconds: 60, TimeoutSeconds: 30, Retries: 1, NotifyOnFailure: true, NotifyOnSuccess: true},
 		"IsNew":          true,
 		"Error":          "",
@@ -28,7 +28,7 @@ func (h *Handler) MonitorNew(c *gin.Context) {
 		"NotifSummaries": notifSummaryMap(allNotifs),
 		"AllTags":        allTags,
 		"LinkedTagIDs":   map[int64]bool{},
-	})
+	}))
 }
 
 // MonitorCreate handles new monitor form submission.
@@ -90,12 +90,12 @@ func (h *Handler) MonitorDetail(c *gin.Context) {
 	uptime24h, _ := bstore.UptimePercent(m.ID, time.Now().Add(-24*time.Hour))
 	uptime30d, _ := bstore.UptimePercent(m.ID, time.Now().Add(-30*24*time.Hour))
 
-	c.HTML(http.StatusOK, "monitor_detail.html", gin.H{
+	c.HTML(http.StatusOK, "monitor_detail.html", h.pageData(c, gin.H{
 		"Monitor":   m,
 		"Beats":     beats,
 		"Uptime24h": uptime24h,
 		"Uptime30d": uptime30d,
-	})
+	}))
 }
 
 // MonitorEdit renders the edit form for an existing monitor.
@@ -118,7 +118,7 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 	for _, t := range linkedTags {
 		linkedTagIDs[t.ID] = true
 	}
-	c.HTML(http.StatusOK, "monitor_form.html", gin.H{
+	c.HTML(http.StatusOK, "monitor_form.html", h.pageData(c, gin.H{
 		"Monitor":        m,
 		"IsNew":          false,
 		"Error":          "",
@@ -127,7 +127,7 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 		"NotifSummaries": notifSummaryMap(allNotifs),
 		"AllTags":        allTags,
 		"LinkedTagIDs":   linkedTagIDs,
-	})
+	}))
 }
 
 // MonitorUpdate handles the edit form submission.

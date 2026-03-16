@@ -17,3 +17,5 @@ Thumbs.db
 # Logs
 build-errors.log
 nul
+coverage.out
+coverage.html

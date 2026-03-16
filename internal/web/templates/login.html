@@ -14,6 +14,11 @@
         </div>
         <div class="card">
             <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:1.5rem; text-align:center;">Sign In</h2>
+            {{ if .SetupMode }}
+            <div class="alert" style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); color:#fbbf24; font-size:0.875rem; margin-bottom:1.25rem;">
+                &#9432; No accounts exist yet.<br>Check the <strong>server console</strong> for the one-time setup link.
+            </div>
+            {{ end }}
             {{ if .Error }}
             <div class="alert alert-danger">{{ .Error }}</div>
             {{ end }}
@@ -32,6 +37,9 @@
                     Sign In
                 </button>
             </form>
+            <div style="text-align:center; margin-top:1rem;">
+                <a href="/register" style="font-size:0.875rem; color:#64748b;">Create an account</a>
+            </div>
         </div>
     </div>
 </body>

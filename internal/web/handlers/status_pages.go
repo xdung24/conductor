@@ -20,22 +20,22 @@ func (h *Handler) StatusPageList(c *gin.Context) {
 	if flash != "" {
 		c.SetCookie("sm_flash", "", -1, "/", "", false, true)
 	}
-	c.HTML(http.StatusOK, "status_page_list.html", gin.H{
+	c.HTML(http.StatusOK, "status_page_list.html", h.pageData(c, gin.H{
 		"Pages": pages,
 		"Flash": flash,
-	})
+	}))
 }
 
 // StatusPageNew renders the create form.
 func (h *Handler) StatusPageNew(c *gin.Context) {
 	monitors, _ := h.monitorStore(c).List()
-	c.HTML(http.StatusOK, "status_page_form.html", gin.H{
+	c.HTML(http.StatusOK, "status_page_form.html", h.pageData(c, gin.H{
 		"Page":             &models.StatusPage{},
 		"IsNew":            true,
 		"AllMonitors":      monitors,
 		"LinkedMonitorIDs": map[int64]bool{},
 		"Error":            "",
-	})
+	}))
 }
 
 // StatusPageCreate handles the create form submission.
@@ -78,13 +78,13 @@ func (h *Handler) StatusPageEdit(c *gin.Context) {
 	for _, id := range linkedIDs {
 		linked[id] = true
 	}
-	c.HTML(http.StatusOK, "status_page_form.html", gin.H{
+	c.HTML(http.StatusOK, "status_page_form.html", h.pageData(c, gin.H{
 		"Page":             page,
 		"IsNew":            false,
 		"AllMonitors":      monitors,
 		"LinkedMonitorIDs": linked,
 		"Error":            "",
-	})
+	}))
 }
 
 // StatusPageUpdate handles the edit form submission.

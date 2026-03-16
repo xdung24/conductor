@@ -35,3 +35,20 @@ func verifyToken(token, secret string) (string, bool) {
 	}
 	return username, true
 }
+
+// signPendingToken creates a short-lived "password verified, awaiting 2FA" token.
+// The embedded principal is "2fa:<username>" so a pending token can never be
+// mistaken for a full session token (validSession rejects it because no user
+// named "2fa:alice" exists).
+func signPendingToken(username, secret string) string {
+	return signToken("2fa:"+username, secret)
+}
+
+// verifyPendingToken validates a pending-2FA token and returns the bare username.
+func verifyPendingToken(token, secret string) (string, bool) {
+	raw, ok := verifyToken(token, secret)
+	if !ok || !strings.HasPrefix(raw, "2fa:") {
+		return "", false
+	}
+	return strings.TrimPrefix(raw, "2fa:"), true
+}

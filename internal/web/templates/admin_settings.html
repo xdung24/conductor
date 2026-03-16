@@ -1,0 +1,50 @@
+{{ define "admin_settings.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+        <h1 class="page-title">Settings</h1>
+
+        {{ if .Flash }}
+        <div class="alert alert-success">&#10003; {{ .Flash }}</div>
+        {{ end }}
+        {{ if .Error }}
+        <div class="alert alert-danger">&#10007; {{ .Error }}</div>
+        {{ end }}
+
+        <form method="POST" action="/admin/settings">
+            <div class="card">
+                <h2 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; color:#94a3b8;
+                            text-transform:uppercase; letter-spacing:0.05em;">Account Registration</h2>
+
+                <div style="display:flex; align-items:flex-start; gap:1rem; margin-bottom:1.5rem;">
+                    <div style="flex:1;">
+                        <p style="font-weight:500; margin-bottom:0.25rem;">Open Registration</p>
+                        <p style="font-size:0.875rem; color:#64748b;">
+                            When enabled, anyone can create an account at
+                            <code style="font-size:0.8rem;">/register</code> without an invite link.
+                            When disabled, only invite links (generated from the Users page) allow new sign-ups.
+                        </p>
+                    </div>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; white-space:nowrap;">
+                        <input type="checkbox" name="registration_enabled" value="1"
+                               {{ if .RegistrationEnabled }}checked{{ end }}
+                               style="width:1.1rem; height:1.1rem; cursor:pointer;" />
+                        <span style="font-size:0.9rem;">Enabled</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
+{{ end }}

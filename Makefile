@@ -10,7 +10,7 @@ BUILD_FLAGS := -ldflags="-s -w"
 .PHONY: build
 build:
 	rm -f $(BINARY)
-	go build $(BUILD_FLAGS) -o $(BINARY) $(MAIN)
+	go build -v $(BUILD_FLAGS) -o $(BINARY) $(MAIN)
 
 ## run: build and run locally
 .PHONY: run
@@ -31,6 +31,13 @@ test:
 .PHONY: check-templates
 check-templates:
 	go test ./internal/web/... -run TestTemplatesParse -v
+
+## coverage: run tests and generate HTML coverage report
+.PHONY: coverage
+coverage:
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report written to coverage.html"
 
 ## lint: run linters
 .PHONY: lint

@@ -13,17 +13,68 @@
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
     <h1 class="page-title" style="margin-bottom:0;">Users</h1>
-    <a href="/admin/users/new" class="btn btn-primary">+ Add User</a>
+    <div style="display:flex; gap:0.5rem;">
+        <form method="POST" action="/admin/users/invite" style="display:inline; margin:0;">
+            <button type="submit" class="btn btn-ghost btn-sm">&#128279; Generate Invite Link</button>
+        </form>
+        <a href="/admin/users/new" class="btn btn-primary">+ Add User</a>
+    </div>
 </div>
 
 {{ if .Flash }}
-<div style="background:#064e3b; border:1px solid #065f46; color:#34d399; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
-    ✓ {{ .Flash }}
-</div>
+<div class="alert alert-success" style="word-break:break-all;">&#10003; {{ .Flash }}</div>
 {{ end }}
 {{ if .FlashError }}
-<div style="background:#450a0a; border:1px solid #7f1d1d; color:#f87171; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
-    ✗ {{ .FlashError }}
+<div class="alert alert-danger">&#10007; {{ .FlashError }}</div>
+{{ end }}
+
+{{ if not .RegistrationEnabled }}
+<div class="alert" style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); color:#fbbf24;">
+    &#9888; Open registration is <strong>disabled</strong>. New users can only join via invite link or admin creation.
+</div>
+{{ end }}
+
+{{ if .InviteTokens }}
+<div class="card" style="margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h2 style="font-size:1rem; font-weight:600; margin:0; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Invite Links</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Token (first 12 chars)</th>
+                <th>Created By</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .InviteTokens }}
+        <tr>
+            <td style="font-family:monospace; font-size:0.85rem; color:#94a3b8;">{{ slice .Token 0 12 }}…</td>
+            <td style="font-size:0.875rem;">{{ .CreatedBy }}</td>
+            <td style="color:#94a3b8; font-size:0.875rem;">{{ .CreatedAt.Format "2006-01-02 15:04" }}</td>
+            <td>
+                {{ if .Pending }}
+                <span class="badge badge-up">Pending</span>
+                {{ else }}
+                <span class="badge badge-unknown">Used</span>
+                {{ end }}
+            </td>
+            <td>
+                {{ if .Pending }}
+                <form method="POST" action="/admin/users/invites/{{ .Token }}/delete"
+                      onsubmit="return confirm('Revoke this invite link?')"
+                      style="display:inline;">
+                    <button class="btn btn-danger btn-sm">Revoke</button>
+                </form>
+                {{ end }}
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
 </div>
 {{ end }}
 
@@ -32,6 +83,7 @@
     <thead>
         <tr>
             <th>Username</th>
+            <th>Role</th>
             <th>Created</th>
             <th>Actions</th>
         </tr>
@@ -45,6 +97,13 @@
                 <span class="badge badge-up" style="margin-left:0.5rem; font-size:0.7rem;">you</span>
             {{ end }}
         </td>
+        <td>
+            {{ if .IsAdmin }}
+            <span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa;">Admin</span>
+            {{ else }}
+            <span class="badge badge-unknown">User</span>
+            {{ end }}
+        </td>
         <td style="color:#94a3b8; font-size:0.875rem;">{{ .CreatedAt.Format "2006-01-02 15:04" }}</td>
         <td>
             <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
@@ -53,6 +112,13 @@
                     Change Password
                 </a>
                 {{ if ne .Username $.CurrentUser }}
+                <form method="POST" action="/admin/users/{{ .Username }}/role"
+                      onsubmit="return confirm('{{ if .IsAdmin }}Revoke admin from {{ .Username }}?{{ else }}Grant admin to {{ .Username }}?{{ end }}')"
+                      style="display:inline;">
+                    <button class="btn {{ if .IsAdmin }}btn-warning{{ else }}btn-success{{ end }}" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
+                        {{ if .IsAdmin }}Revoke Admin{{ else }}Make Admin{{ end }}
+                    </button>
+                </form>
                 <form method="POST" action="/admin/users/{{ .Username }}/delete"
                       onsubmit="return confirm('Delete user {{ .Username }}? This cannot be undone.')"
                       style="display:inline;">

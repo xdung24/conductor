@@ -1,0 +1,43 @@
+{{ define "login_2fa.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Two-Factor Authentication — Service Monitor</title>
+    {{ template "styles" . }}
+</head>
+<body>
+    <div style="max-width:400px; margin:4rem auto; padding:1rem;">
+        <div style="text-align:center; margin-bottom:2rem;">
+            <h1 style="font-size:1.5rem; font-weight:700; color:#f1f5f9;">&#9829; <span style="color:#38bdf8;">Service</span>Monitor</h1>
+        </div>
+        <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem; text-align:center;">Two-Factor Authentication</h2>
+            <p style="text-align:center; color:#94a3b8; font-size:0.875rem; margin-bottom:1.5rem;">
+                Enter the 6-digit code from your authenticator app.
+            </p>
+            {{ if .Error }}
+            <div class="alert alert-danger">{{ .Error }}</div>
+            {{ end }}
+            <form method="POST" action="/login/2fa">
+                <div class="form-group">
+                    <label for="code">Authentication Code</label>
+                    <input class="form-control" type="text" id="code" name="code"
+                           autocomplete="one-time-code" inputmode="numeric"
+                           pattern="[0-9]{6}" maxlength="6" placeholder="000000"
+                           autofocus required
+                           style="letter-spacing:0.3em; font-size:1.25rem; text-align:center;" />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:0.5rem;">
+                    Verify
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:1rem;">
+                <a href="/login" style="font-size:0.875rem; color:#64748b;">&#8592; Back to login</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}

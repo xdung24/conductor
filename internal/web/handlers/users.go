@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -15,11 +16,15 @@ func (h *Handler) UserList(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
 		return
 	}
+	inviteTokens, _ := h.regTokenStore().ListAll()
 	c.HTML(http.StatusOK, "users.html", gin.H{
-		"Users":       users,
-		"CurrentUser": h.username(c),
-		"Flash":       c.Query("flash"),
-		"FlashError":  c.Query("error"),
+		"Users":               users,
+		"CurrentUser":         h.username(c),
+		"IsAdmin":             h.isAdmin(c),
+		"Flash":               c.Query("flash"),
+		"FlashError":          c.Query("error"),
+		"InviteTokens":        inviteTokens,
+		"RegistrationEnabled": h.settingsStore().RegistrationEnabled(),
 	})
 }
 
@@ -27,6 +32,7 @@ func (h *Handler) UserList(c *gin.Context) {
 func (h *Handler) UserNew(c *gin.Context) {
 	c.HTML(http.StatusOK, "user_form.html", gin.H{
 		"IsNew":      true,
+		"IsAdmin":    h.isAdmin(c),
 		"TargetUser": "",
 		"Username":   "",
 		"Error":      "",
@@ -99,6 +105,7 @@ func (h *Handler) UserPasswordPage(c *gin.Context) {
 	}
 	c.HTML(http.StatusOK, "user_form.html", gin.H{
 		"IsNew":      false,
+		"IsAdmin":    h.isAdmin(c),
 		"TargetUser": target,
 		"Error":      "",
 	})
@@ -176,4 +183,60 @@ func (h *Handler) UserDelete(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("User "+target+" deleted"))
+}
+
+// InviteGenerate creates a single-use registration token and redirects to the
+// users page with the full invite URL shown as a flash message.
+func (h *Handler) InviteGenerate(c *gin.Context) {
+	token, err := h.regTokenStore().Generate(h.username(c), 0) // 0 = no expiry for admin invites
+	if err != nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to generate invite: "+err.Error()))
+		return
+	}
+
+	scheme := "http"
+	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	inviteURL := fmt.Sprintf("%s://%s/register?token=%s", scheme, c.Request.Host, token)
+	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Invite link: "+inviteURL))
+}
+
+// InviteRevoke deletes an invite token.
+func (h *Handler) InviteRevoke(c *gin.Context) {
+	token := c.Param("token")
+	_ = h.regTokenStore().Delete(token)
+	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Invite revoked"))
+}
+
+// UserSetAdmin grants or revokes admin privileges for a user.
+func (h *Handler) UserSetAdmin(c *gin.Context) {
+	target := c.Param("username")
+	current := h.username(c)
+
+	if target == current {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Cannot change your own admin role"))
+		return
+	}
+
+	u, _ := h.users.GetByUsername(target)
+	if u == nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("User not found"))
+		return
+	}
+
+	// Toggle: if currently admin, revoke; otherwise grant.
+	grant := !u.IsAdmin
+	if err := h.users.SetAdmin(target, grant); err != nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to update role: "+err.Error()))
+		return
+	}
+
+	var msg string
+	if grant {
+		msg = target + " is now an admin"
+	} else {
+		msg = target + " is no longer an admin"
+	}
+	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape(msg))
 }

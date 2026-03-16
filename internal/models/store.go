@@ -279,26 +279,40 @@ func (s *UserStore) Count() (int, error) {
 func (s *UserStore) GetByUsername(username string) (*User, error) {
 	u := &User{}
 	err := s.db.QueryRow(`
-		SELECT id, username, password, created_at FROM users WHERE username=?
-	`, username).Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt)
+		SELECT id, username, password, created_at, is_admin FROM users WHERE username=?
+	`, username).Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	return u, err
 }
 
-// Create inserts a new user.
+// Create inserts a new user as a regular (non-admin) account.
+// Call SetAdmin separately if the caller needs to elevate the user.
 func (s *UserStore) Create(username, hashedPassword string) error {
-	_, err := s.db.ExecContext(context.Background(), `INSERT INTO users (username, password) VALUES (?, ?)`, username, hashedPassword)
+	_, err := s.db.ExecContext(context.Background(),
+		`INSERT INTO users (username, password) VALUES (?, ?)`,
+		username, hashedPassword)
 	if err != nil {
 		return fmt.Errorf("create user: %w", err)
 	}
 	return nil
 }
 
+// SetAdmin grants or revokes admin privileges for a user.
+func (s *UserStore) SetAdmin(username string, admin bool) error {
+	val := 0
+	if admin {
+		val = 1
+	}
+	_, err := s.db.ExecContext(context.Background(),
+		`UPDATE users SET is_admin=? WHERE username=?`, val, username)
+	return err
+}
+
 // ListAll returns all user records from the users database.
 func (s *UserStore) ListAll() ([]*User, error) {
-	rows, err := s.db.Query(`SELECT id, username, password, created_at FROM users ORDER BY id ASC`)
+	rows, err := s.db.Query(`SELECT id, username, password, created_at, is_admin FROM users ORDER BY id ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +321,7 @@ func (s *UserStore) ListAll() ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		u := &User{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
@@ -357,6 +371,41 @@ func (s *UserStore) Delete(username string) error {
 // UpdatePassword replaces the stored hashed password for a user.
 func (s *UserStore) UpdatePassword(username, hashedPassword string) error {
 	_, err := s.db.ExecContext(context.Background(), `UPDATE users SET password=? WHERE username=?`, hashedPassword, username)
+	return err
+}
+
+// GetTOTP returns the TOTP secret and enabled-status for the given user.
+// Returns empty string + false if the columns are NULL (2FA never configured).
+func (s *UserStore) GetTOTP(username string) (secret string, enabled bool, err error) {
+	var sec sql.NullString
+	var ena sql.NullInt64
+	err = s.db.QueryRow(
+		`SELECT totp_secret, totp_enabled FROM users WHERE username=?`, username,
+	).Scan(&sec, &ena)
+	if err != nil {
+		return "", false, err
+	}
+	return sec.String, ena.Int64 == 1, nil
+}
+
+// SetTOTPSecret stores (but does NOT enable) a pending TOTP secret.
+func (s *UserStore) SetTOTPSecret(username, secret string) error {
+	_, err := s.db.ExecContext(context.Background(),
+		`UPDATE users SET totp_secret=? WHERE username=?`, secret, username)
+	return err
+}
+
+// EnableTOTP marks 2FA as active for the user (secret must already be set).
+func (s *UserStore) EnableTOTP(username string) error {
+	_, err := s.db.ExecContext(context.Background(),
+		`UPDATE users SET totp_enabled=1 WHERE username=?`, username)
+	return err
+}
+
+// DisableTOTP turns off 2FA and clears the TOTP secret.
+func (s *UserStore) DisableTOTP(username string) error {
+	_, err := s.db.ExecContext(context.Background(),
+		`UPDATE users SET totp_enabled=0, totp_secret=NULL WHERE username=?`, username)
 	return err
 }
 
