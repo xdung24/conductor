@@ -1,4 +1,4 @@
-# Uptime Kuma Review Guidelines
+# Review Guidelines
 
 > [!NOTE]
 > These review guidelines are a work in progress, and are frequently
@@ -60,14 +60,6 @@ integration tests, and if necessary, end-to-end tests.
 ### Test results
 
 Did all tests pass in the CI pipeline (e.g., GitHub Actions, Travis, CircleCI)?
-
-### Testing in different environments
-
-If the changes depend on certain environments or configurations, verify that the
-code has been tested in various environments (e.g., local development, staging,
-production).
-
-- [How to test Pull Requests](https://github.com/louislam/uptime-kuma/wiki/Test-Pull-Requests)
 
 ### Edge cases and regressions
 
