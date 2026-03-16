@@ -583,7 +583,41 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		notifyBodyChars = 4096
 	}
 
-	// Always build a partial monitor so error paths never get nil.
+	// MQTT fields
+	mqttTopic := c.PostForm("mqtt_topic")
+	mqttUsername := c.PostForm("mqtt_username")
+	mqttPassword := c.PostForm("mqtt_password")
+
+	// gRPC fields
+	grpcProtobuf := c.PostForm("grpc_protobuf")
+	grpcServiceName := c.PostForm("grpc_service_name")
+	grpcMethod := c.PostForm("grpc_method")
+	grpcBody := c.PostForm("grpc_body")
+	grpcEnableTLS := c.PostForm("grpc_enable_tls") == "on"
+
+	// Docker fields
+	dockerHostIDStr, _ := strconv.ParseInt(c.DefaultPostForm("docker_host_id", "0"), 10, 64)
+	dockerContainerID := c.PostForm("docker_container_id")
+
+	// SNMP fields
+	snmpCommunity := c.DefaultPostForm("snmp_community", "public")
+	snmpOid := c.PostForm("snmp_oid")
+	snmpVersion := c.DefaultPostForm("snmp_version", "2c")
+	snmpExpected := c.PostForm("snmp_expected")
+
+	// System service / Tailscale
+	serviceName := c.PostForm("service_name")
+
+	// Manual monitor
+	manualStatusVal, err5 := strconv.Atoi(c.DefaultPostForm("manual_status", "1"))
+	if err5 != nil || (manualStatusVal != 0 && manualStatusVal != 1) {
+		manualStatusVal = 1
+	}
+
+	// Group monitor
+	parentIDVal, _ := strconv.ParseInt(c.DefaultPostForm("parent_id", "0"), 10, 64)
+
+
 	m := &models.Monitor{
 		Name:                 name,
 		Type:                 monType,
@@ -623,11 +657,34 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		NotifyOnSuccess:      notifyOnSuccess,
 		NotifyBodyChars:      notifyBodyChars,
 		CertExpiryAlertDays:  certExpiryAlertDays,
+		MQTTTopic:            mqttTopic,
+		MQTTUsername:         mqttUsername,
+		MQTTPassword:         mqttPassword,
+		GRPCProtobuf:         grpcProtobuf,
+		GRPCServiceName:      grpcServiceName,
+		GRPCMethod:           grpcMethod,
+		GRPCBody:             grpcBody,
+		GRPCEnableTLS:        grpcEnableTLS,
+		DockerHostID:         dockerHostIDStr,
+		DockerContainerID:    dockerContainerID,
+		SNMPCommunity:        snmpCommunity,
+		SNMPOid:              snmpOid,
+		SNMPVersion:          snmpVersion,
+		SNMPExpected:         snmpExpected,
+		ServiceName:          serviceName,
+		ManualStatus:         manualStatusVal,
+		ParentID:             parentIDVal,
 	}
 	if name == "" {
 		return m, &formError{"name is required"}
 	}
-	if monURL == "" && monType != models.MonitorTypePush {
+	noURLTypes := map[models.MonitorType]bool{
+		models.MonitorTypePush:          true,
+		models.MonitorTypeManual:        true,
+		models.MonitorTypeGroup:         true,
+		models.MonitorTypeSystemService: true,
+	}
+	if monURL == "" && !noURLTypes[monType] {
 		return m, &formError{"url is required"}
 	}
 	return m, nil

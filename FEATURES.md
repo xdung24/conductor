@@ -20,7 +20,7 @@ This document tracks which features are implemented, in progress, or planned.
 | HTTP — Accepted status codes | ✅ Done | Comma-separated list, e.g. `200,404`; empty = 2xx/3xx |
 | WebSocket Upgrade | ✅ Done | Dial ws:// or wss://; verify 101 Switching Protocols; optional TLS skip |
 | SMTP | ✅ Done | EHLO + optional STARTTLS + optional AUTH PLAIN |
-| SNMP | ⬜ Planned | Get OID value, optional assert |
+| SNMP | ✅ Done | Get OID value via gosnmp; v1/v2c/v3; optional expected-value assertion |
 | MQTT | ✅ Done | Connect to broker, subscribe to topic, wait for message; optional keyword assertion |
 | Docker Container | ✅ Done | Container running/healthy via Docker Unix socket or TCP HTTP API; health check status reported |
 | MySQL / MariaDB | ✅ Done | Connection string DSN + optional query (default `SELECT 1`) |
@@ -28,18 +28,18 @@ This document tracks which features are implemented, in progress, or planned.
 | Microsoft SQL Server | ✅ Done | Connection string DSN + optional query (default `SELECT 1`) |
 | MongoDB | ✅ Done | mongo-driver ping + optional admin command (e.g. `{"ping":1}`) |
 | Redis | ✅ Done | Raw RESP PING/PONG; optional AUTH (Redis 6+ ACL); `host:port` or `user:pass@host:port` |
-| RabbitMQ | ⬜ Planned | Management API health check |
+| RabbitMQ | ✅ Done | Management API health check (`/api/healthchecks/node`); Basic Auth |
 | gRPC Keyword | ✅ Done | Standard `grpc.health.v1.Health/Check`; optional keyword assertion on status string; TLS support |
-| SIP Options | ⬜ Planned | SIP OPTIONS request |
+| SIP Options | ✅ Done | Raw UDP SIP OPTIONS request; checks SIP/2.0 response |
 | Radius | ⬜ Planned | Authentication request |
 | Steam | ⬜ Planned | Steam Web API query |
 | GameDig | ⬜ Planned | Game server query protocol |
-| Tailscale Ping | ⬜ Planned | `tailscale ping` subprocess |
-| Globalping | ⬜ Planned | Globalping API distributed check |
+| Tailscale Ping | ✅ Done | `tailscale ping --c 1` subprocess; checks for pong/DERP |
+| Globalping | ✅ Done | Globalping API distributed ping check; polls for result |
 | Kafka Producer | ⬜ Planned | Produce a test message |
 | Real Browser (Chromium) | ⬜ Planned | Headless browser via chromedp |
-| System Service | ⬜ Planned | Windows SCM / systemd unit status |
-| Group / Manual | ⬜ Planned | Logical grouping / manual status |
+| System Service | ✅ Done | Windows SCM (`sc.exe query`) / systemd (`systemctl is-active`) / launchd (`launchctl list`) |
+| Group / Manual | ✅ Done | Group: status derived from children; Manual: static UP/DOWN flag |
 
 ---
 

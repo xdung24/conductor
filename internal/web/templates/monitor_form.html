@@ -38,6 +38,27 @@
                     <option value="postgres" {{ if eq .Monitor.Type "postgres" }}selected{{ end }}>PostgreSQL</option>
                     <option value="redis"    {{ if eq .Monitor.Type "redis"    }}selected{{ end }}>Redis</option>
                     <option value="mongodb"  {{ if eq .Monitor.Type "mongodb"  }}selected{{ end }}>MongoDB</option>
+                    <option value="mssql"    {{ if eq .Monitor.Type "mssql"    }}selected{{ end }}>Microsoft SQL Server</option>
+                </optgroup>
+                <optgroup label="Messaging">
+                    <option value="websocket"   {{ if eq .Monitor.Type "websocket"   }}selected{{ end }}>WebSocket</option>
+                    <option value="mqtt"        {{ if eq .Monitor.Type "mqtt"        }}selected{{ end }}>MQTT</option>
+                    <option value="rabbitmq"    {{ if eq .Monitor.Type "rabbitmq"    }}selected{{ end }}>RabbitMQ</option>
+                </optgroup>
+                <optgroup label="Network / Protocol">
+                    <option value="sip_options" {{ if eq .Monitor.Type "sip_options" }}selected{{ end }}>SIP Options</option>
+                    <option value="snmp"        {{ if eq .Monitor.Type "snmp"        }}selected{{ end }}>SNMP</option>
+                    <option value="grpc"        {{ if eq .Monitor.Type "grpc"        }}selected{{ end }}>gRPC</option>
+                </optgroup>
+                <optgroup label="Infrastructure">
+                    <option value="docker"         {{ if eq .Monitor.Type "docker"         }}selected{{ end }}>Docker Container</option>
+                    <option value="system_service" {{ if eq .Monitor.Type "system_service" }}selected{{ end }}>System Service</option>
+                    <option value="tailscale"      {{ if eq .Monitor.Type "tailscale"      }}selected{{ end }}>Tailscale Ping</option>
+                    <option value="globalping"     {{ if eq .Monitor.Type "globalping"     }}selected{{ end }}>Globalping</option>
+                </optgroup>
+                <optgroup label="Other">
+                    <option value="group"  {{ if eq .Monitor.Type "group"  }}selected{{ end }}>Group</option>
+                    <option value="manual" {{ if eq .Monitor.Type "manual" }}selected{{ end }}>Manual</option>
                 </optgroup>
             </select>
         </div>
@@ -285,7 +306,7 @@
 
 
         <!-- Database monitor options (mysql, postgres, redis, mongodb) -->
-        {{ $isDB := or (eq .Monitor.Type "mysql") (or (eq .Monitor.Type "postgres") (or (eq .Monitor.Type "redis") (eq .Monitor.Type "mongodb"))) }}
+        {{ $isDB := or (eq .Monitor.Type "mysql") (or (eq .Monitor.Type "postgres") (or (eq .Monitor.Type "redis") (or (eq .Monitor.Type "mongodb") (eq .Monitor.Type "mssql")))) }}
         <div id="db-fields" style="display:{{ if $isDB }}block{{ else }}none{{ end }};">
             <div class="form-group">
                 <label for="db_query">Test Query / Command <span style="color:#64748b; font-weight:400;">(optional)</span></label>
@@ -303,9 +324,187 @@
                 <strong>MySQL / MariaDB</strong> — URL format: <code>user:pass@tcp(host:port)/dbname</code><br/>
                 <strong>PostgreSQL</strong> — URL format: <code>postgres://user:pass@host:port/dbname?sslmode=disable</code><br/>
                 <strong>Redis</strong> — URL format: <code>host:port</code> or <code>username:password@host:port</code><br/>
-                <strong>MongoDB</strong> — URL format: <code>mongodb://user:pass@host:port/dbname</code>
+                <strong>MongoDB</strong> — URL format: <code>mongodb://user:pass@host:port/dbname</code><br/>
+                <strong>MSSQL</strong> — URL format: <code>sqlserver://user:pass@host:port?database=dbname</code>
             </small>
         </div>
+
+        <!-- MQTT fields -->
+        <div id="mqtt-fields" style="display:{{ if eq .Monitor.Type "mqtt" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="mqtt_topic">MQTT Topic</label>
+                <input class="form-control" type="text" id="mqtt_topic" name="mqtt_topic"
+                       value="{{ .Monitor.MQTTTopic }}" placeholder="e.g. sensors/temperature" />
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label for="mqtt_username">Username <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                    <input class="form-control" type="text" id="mqtt_username" name="mqtt_username"
+                           value="{{ .Monitor.MQTTUsername }}" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                    <label for="mqtt_password">Password <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                    <input class="form-control" type="password" id="mqtt_password" name="mqtt_password"
+                           value="{{ .Monitor.MQTTPassword }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                URL format: <code>mqtt://host:1883</code> or <code>mqtts://host:8883</code>
+            </small>
+        </div>
+
+        <!-- RabbitMQ fields (uses URL + http_username/http_password) -->
+        <div id="rabbitmq-fields" style="display:{{ if eq .Monitor.Type "rabbitmq" }}block{{ else }}none{{ end }};">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label for="rabbitmq_username">Management Username</label>
+                    <input class="form-control" type="text" id="rabbitmq_username" name="http_username"
+                           value="{{ .Monitor.HTTPUsername }}" autocomplete="off" placeholder="guest" />
+                </div>
+                <div class="form-group">
+                    <label for="rabbitmq_password">Management Password</label>
+                    <input class="form-control" type="password" id="rabbitmq_password" name="http_password"
+                           value="{{ .Monitor.HTTPPassword }}" autocomplete="new-password" placeholder="guest" />
+                </div>
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                URL: base URL of RabbitMQ management plugin, e.g. <code>http://localhost:15672</code>.
+                Checks <code>/api/healthchecks/node</code>.
+            </small>
+        </div>
+
+        <!-- SNMP fields -->
+        {{ $snmpVer := .Monitor.SNMPVersion }}
+        <div id="snmp-fields" style="display:{{ if eq .Monitor.Type "snmp" }}block{{ else }}none{{ end }};">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label for="snmp_community">Community String</label>
+                    <input class="form-control" type="text" id="snmp_community" name="snmp_community"
+                           value="{{ if .Monitor.SNMPCommunity }}{{ .Monitor.SNMPCommunity }}{{ else }}public{{ end }}" />
+                </div>
+                <div class="form-group">
+                    <label for="snmp_version">SNMP Version</label>
+                    <select class="form-control" id="snmp_version" name="snmp_version">
+                        <option value="1"  {{ if eq $snmpVer "1"  }}selected{{ end }}>v1</option>
+                        <option value="2c" {{ if or (eq $snmpVer "2c") (eq $snmpVer "") }}selected{{ end }}>v2c</option>
+                        <option value="3"  {{ if eq $snmpVer "3"  }}selected{{ end }}>v3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="snmp_oid">OID</label>
+                <input class="form-control" type="text" id="snmp_oid" name="snmp_oid"
+                       value="{{ .Monitor.SNMPOid }}" placeholder="e.g. 1.3.6.1.2.1.1.1.0 (sysDescr)" />
+            </div>
+            <div class="form-group">
+                <label for="snmp_expected">Expected Value <span style="color:#64748b; font-weight:400;">(optional substring match)</span></label>
+                <input class="form-control" type="text" id="snmp_expected" name="snmp_expected"
+                       value="{{ .Monitor.SNMPExpected }}" placeholder="Leave blank to only check reachability" />
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                URL format: <code>host:161</code> — port 161 is used if omitted.
+            </small>
+        </div>
+
+        <!-- gRPC fields -->
+        <div id="grpc-fields" style="display:{{ if eq .Monitor.Type "grpc" }}block{{ else }}none{{ end }};">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group">
+                    <label for="grpc_service_name">Service Name</label>
+                    <input class="form-control" type="text" id="grpc_service_name" name="grpc_service_name"
+                           value="{{ .Monitor.GRPCServiceName }}" placeholder="e.g. grpc.health.v1.Health" />
+                </div>
+                <div class="form-group">
+                    <label for="grpc_method">Method</label>
+                    <input class="form-control" type="text" id="grpc_method" name="grpc_method"
+                           value="{{ .Monitor.GRPCMethod }}" placeholder="e.g. Check" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="grpc_body">Request Body (JSON) <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                <textarea class="form-control" id="grpc_body" name="grpc_body" rows="3"
+                          placeholder='{"service":""}'
+                          style="font-family:monospace; font-size:0.8rem;">{{ .Monitor.GRPCBody }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="grpc_protobuf">Protobuf Definition <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                <textarea class="form-control" id="grpc_protobuf" name="grpc_protobuf" rows="4"
+                          placeholder="syntax = &quot;proto3&quot;; ..."
+                          style="font-family:monospace; font-size:0.8rem;">{{ .Monitor.GRPCProtobuf }}</textarea>
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:#94a3b8;">
+                    <input type="checkbox" name="grpc_enable_tls" value="on"
+                           {{ if .Monitor.GRPCEnableTLS }}checked{{ end }}
+                           style="width:1rem; height:1rem; accent-color:#38bdf8; cursor:pointer;" />
+                    Enable TLS
+                </label>
+            </div>
+        </div>
+
+        <!-- Docker Container fields -->
+        <div id="docker-fields" style="display:{{ if eq .Monitor.Type "docker" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="docker_container_id">Container Name or ID</label>
+                <input class="form-control" type="text" id="docker_container_id" name="docker_container_id"
+                       value="{{ .Monitor.DockerContainerID }}" placeholder="e.g. my-nginx or sha256:abc" />
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                Connects to the local Docker socket. Leave URL blank (not used for Docker monitors).
+            </small>
+        </div>
+
+        <!-- System Service fields -->
+        <div id="system_service-fields" style="display:{{ if eq .Monitor.Type "system_service" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="service_name">Service Name</label>
+                <input class="form-control" type="text" id="service_name" name="service_name"
+                       value="{{ .Monitor.ServiceName }}" placeholder="e.g. nginx or com.apple.airportd" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Linux: systemd unit name. macOS: launchd label. Windows: SC service name.
+                </small>
+            </div>
+        </div>
+
+        <!-- Group fields -->
+        <div id="group-fields" style="display:{{ if eq .Monitor.Type "group" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="parent_id">Parent Monitor ID <span style="color:#64748b; font-weight:400;">(optional — for logical grouping)</span></label>
+                <input class="form-control" type="number" id="parent_id" name="parent_id"
+                       value="{{ .Monitor.ParentID }}" min="0" placeholder="0 (no parent)" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    A Group monitor's status is derived from all monitors that have this monitor's ID as their parent_id.
+                    Set to 0 for a top-level group.
+                </small>
+            </div>
+        </div>
+
+        <!-- Manual fields -->
+        {{ $manualUp := eq .Monitor.ManualStatus 1 }}
+        <div id="manual-fields" style="display:{{ if eq .Monitor.Type "manual" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label>Manual Status</label>
+                <div style="display:flex; gap:2rem; margin-top:0.5rem;">
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:#94a3b8;">
+                        <input type="radio" name="manual_status" value="1"
+                               {{ if $manualUp }}checked{{ end }}
+                               style="width:1rem; height:1rem; accent-color:#4ade80; cursor:pointer;" />
+                        <strong style="color:#4ade80;">UP</strong>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:#94a3b8;">
+                        <input type="radio" name="manual_status" value="0"
+                               {{ if not $manualUp }}checked{{ end }}
+                               style="width:1rem; height:1rem; accent-color:#f87171; cursor:pointer;" />
+                        <strong style="color:#f87171;">DOWN</strong>
+                    </label>
+                </div>
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.5rem;">
+                    A Manual monitor returns the status you set here — no network check is performed.
+                    Useful as a maintenance/incident flag.
+                </small>
+            </div>
+        </div>
+
             <input type="hidden" name="push_token" value="{{ .Monitor.PushToken }}" />
             {{ if .Monitor.PushToken }}
             <div class="form-group">
@@ -469,17 +668,25 @@ function toggleRequestBody() {
 }
 function toggleTypeFields() {
     var t = document.getElementById('type').value;
-    var isDB = (t === 'mysql' || t === 'postgres' || t === 'redis' || t === 'mongodb');
-    document.getElementById('dns-fields').style.display  = (t === 'dns')  ? 'block' : 'none';
-    document.getElementById('http-fields').style.display = (t === 'http') ? 'block' : 'none';
-    document.getElementById('smtp-fields').style.display = (t === 'smtp') ? 'block' : 'none';
-    document.getElementById('push-fields').style.display = (t === 'push') ? 'none'  : 'none';
-    document.getElementById('db-fields').style.display   = isDB ? 'block' : 'none';
-    // push-fields is always rendered inside its own open block; reset individually
+    var isDB = (t === 'mysql' || t === 'postgres' || t === 'redis' || t === 'mongodb' || t === 'mssql');
+    var noURL = (t === 'push' || t === 'manual' || t === 'group' || t === 'system_service' || t === 'docker');
+    document.getElementById('dns-fields').style.display            = (t === 'dns')            ? 'block' : 'none';
+    document.getElementById('http-fields').style.display           = (t === 'http')           ? 'block' : 'none';
+    document.getElementById('smtp-fields').style.display           = (t === 'smtp')           ? 'block' : 'none';
+    document.getElementById('db-fields').style.display             = isDB                     ? 'block' : 'none';
+    document.getElementById('mqtt-fields').style.display           = (t === 'mqtt')           ? 'block' : 'none';
+    document.getElementById('rabbitmq-fields').style.display       = (t === 'rabbitmq')       ? 'block' : 'none';
+    document.getElementById('snmp-fields').style.display           = (t === 'snmp')           ? 'block' : 'none';
+    document.getElementById('grpc-fields').style.display           = (t === 'grpc')           ? 'block' : 'none';
+    document.getElementById('docker-fields').style.display         = (t === 'docker')         ? 'block' : 'none';
+    document.getElementById('system_service-fields').style.display = (t === 'system_service') ? 'block' : 'none';
+    document.getElementById('group-fields').style.display          = (t === 'group')          ? 'block' : 'none';
+    document.getElementById('manual-fields').style.display         = (t === 'manual')         ? 'block' : 'none';
+    // push-fields
     var pf = document.getElementById('push-fields');
     if (pf) pf.style.display = (t === 'push') ? 'block' : 'none';
-    // Show/hide the URL input group — not needed for push monitors.
-    document.getElementById('url-group').style.display = (t === 'push') ? 'none' : 'block';
+    // Show/hide the URL input group
+    document.getElementById('url-group').style.display = noURL ? 'none' : 'block';
     var urlInput = document.getElementById('url');
     if (t === 'dns') {
         urlInput.placeholder = 'Domain to query, e.g. example.com';
@@ -497,6 +704,24 @@ function toggleTypeFields() {
         urlInput.placeholder = 'host:port  or  username:password@host:port';
     } else if (t === 'mongodb') {
         urlInput.placeholder = 'mongodb://user:pass@host:port/dbname';
+    } else if (t === 'mssql') {
+        urlInput.placeholder = 'sqlserver://user:pass@host:port?database=dbname';
+    } else if (t === 'websocket') {
+        urlInput.placeholder = 'ws://host:port/path  or  wss://host:port/path';
+    } else if (t === 'mqtt') {
+        urlInput.placeholder = 'mqtt://host:1883  or  mqtts://host:8883';
+    } else if (t === 'rabbitmq') {
+        urlInput.placeholder = 'http://localhost:15672  (management API base URL)';
+    } else if (t === 'snmp') {
+        urlInput.placeholder = 'host:161  (port 161 used if omitted)';
+    } else if (t === 'grpc') {
+        urlInput.placeholder = 'host:port  (no scheme)';
+    } else if (t === 'sip_options') {
+        urlInput.placeholder = 'host:5060  (SIP host and port)';
+    } else if (t === 'tailscale') {
+        urlInput.placeholder = 'Tailscale hostname or IP, e.g. my-device';
+    } else if (t === 'globalping') {
+        urlInput.placeholder = 'Target host or IP, e.g. example.com';
     } else {
         urlInput.placeholder = 'https://example.com  or  host:port  or  hostname';
     }
