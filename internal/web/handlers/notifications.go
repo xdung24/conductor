@@ -210,37 +210,49 @@ func (h *Handler) getNotification(c *gin.Context) (*models.Notification, bool) {
 // notificationFromForm parses the form, builds a Notification and returns the
 // JSON-encoded config string. Always returns a non-nil Notification so error
 // paths in handlers can safely render the form without nil-pointer panics.
+//
+// The HTML form uses JavaScript to `disabled`-gate inputs belonging to inactive
+// provider sections before the form is submitted, so only the active provider's
+// cfg_* fields arrive in the POST body. We simply collect every recognised key.
 func notificationFromForm(c *gin.Context) (*models.Notification, string, error) {
 	name := c.PostForm("name")
 	ntype := c.PostForm("type")
 	activeStr := c.PostForm("active")
 
-	// Build config map from type-specific fields first (even when empty/invalid).
-	cfg := make(map[string]string)
-	switch ntype {
-	case "webhook":
-		cfg["url"] = c.PostForm("cfg_url")
-		cfg["secret"] = c.PostForm("cfg_secret")
-	case "telegram":
-		cfg["bot_token"] = c.PostForm("cfg_bot_token")
-		cfg["chat_id"] = c.PostForm("cfg_chat_id")
-	case "email":
-		cfg["host"] = c.PostForm("cfg_host")
-		cfg["port"] = c.PostForm("cfg_port")
-		cfg["username"] = c.PostForm("cfg_username")
-		cfg["password"] = c.PostForm("cfg_password")
-		cfg["from"] = c.PostForm("cfg_from")
-		cfg["to"] = c.PostForm("cfg_to")
-		cfg["tls"] = c.DefaultPostForm("cfg_tls", "true")
-	case "slack":
-		cfg["url"] = c.PostForm("cfg_slack_url")
-	case "discord":
-		cfg["url"] = c.PostForm("cfg_discord_url")
-	case "ntfy":
-		cfg["topic"] = c.PostForm("cfg_ntfy_topic")
-		cfg["server"] = c.PostForm("cfg_ntfy_server")
-		cfg["token"] = c.PostForm("cfg_ntfy_token")
+	// Every possible config key across all providers. Non-active sections are
+	// disabled by page JS so only the active provider's values are submitted.
+	allKeys := []string{
+		"url", "token", "secret", "topic", "server",
+		"bot_token", "chat_id",
+		"device_key", "server_url", "tokens", "platform",
+		"user_key", "api_token", "device",
+		"send_key", "notification_id",
+		"routing_key", "severity",
+		"homeserver_url", "access_token", "room_id",
+		"number", "recipients", "phone", "session",
+		"api_key", "api_login", "from", "to",
+		"username", "password", "host", "port",
+		"instance", "type",
+		"login", "phones",
+		"line_number", "mobile", "sender_name", "sender_sms", "sender", "apikey",
+		"account_sid", "auth_token", "user", "pass",
+		"priority",
 	}
+	cfg := make(map[string]string)
+	for _, k := range allKeys {
+		if v := c.PostForm("cfg_" + k); v != "" {
+			cfg[k] = v
+		}
+	}
+	// Email TLS is a checkbox: absent = unchecked = false.
+	if ntype == "email" {
+		if c.PostForm("cfg_tls") != "" {
+			cfg["tls"] = "true"
+		} else {
+			cfg["tls"] = "false"
+		}
+	}
+
 	cfgBytes, _ := json.Marshal(cfg)
 	cfgJSON := string(cfgBytes)
 

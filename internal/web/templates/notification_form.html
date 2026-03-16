@@ -9,6 +9,9 @@
     <style>
         .provider-fields { display: none; }
         .provider-fields.active { display: block; }
+        .hint { color: #64748b; font-size: 0.775rem; display: block; margin-top: 0.25rem; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -21,152 +24,841 @@
 <div class="alert alert-danger">{{ .Error }}</div>
 {{ end }}
 
-<div class="card" style="max-width:600px;">
+<div class="card" style="max-width:680px;">
     <form method="POST" action="{{ if .IsNew }}/notifications{{ else }}/notifications/{{ .Notification.ID }}{{ end }}">
 
         <div class="form-group">
             <label for="name">Display Name</label>
             <input class="form-control" type="text" id="name" name="name"
-                   value="{{ .Notification.Name }}" placeholder="My Slack Webhook" required />
+                   value="{{ .Notification.Name }}" placeholder="My Alert Channel" required />
         </div>
 
         <div class="form-group">
             <label for="type">Provider Type</label>
             <select class="form-control" id="type" name="type" onchange="showFields(this.value)">
                 <option value="">— select type —</option>
-                <option value="webhook"  {{ if eq .Notification.Type "webhook"  }}selected{{ end }}>🔗 Webhook (custom HTTP)</option>
-                <option value="slack"    {{ if eq .Notification.Type "slack"    }}selected{{ end }}>💬 Slack Incoming Webhook</option>
-                <option value="discord"  {{ if eq .Notification.Type "discord"  }}selected{{ end }}>🎮 Discord Webhook</option>
-                <option value="ntfy"     {{ if eq .Notification.Type "ntfy"     }}selected{{ end }}>🔔 ntfy</option>
-                <option value="telegram" {{ if eq .Notification.Type "telegram" }}selected{{ end }}>✈️ Telegram</option>
-                <option value="email"    {{ if eq .Notification.Type "email"    }}selected{{ end }}>✉️ Email / SMTP</option>
+                <optgroup label="Webhooks &amp; Messaging">
+                    <option value="webhook"    {{ if eq .Notification.Type "webhook"    }}selected{{ end }}>Webhook (custom HTTP)</option>
+                    <option value="slack"      {{ if eq .Notification.Type "slack"      }}selected{{ end }}>Slack</option>
+                    <option value="discord"    {{ if eq .Notification.Type "discord"    }}selected{{ end }}>Discord</option>
+                    <option value="mattermost" {{ if eq .Notification.Type "mattermost" }}selected{{ end }}>Mattermost</option>
+                    <option value="rocketchat" {{ if eq .Notification.Type "rocketchat" }}selected{{ end }}>Rocket.Chat</option>
+                    <option value="dingding"   {{ if eq .Notification.Type "dingding"   }}selected{{ end }}>DingTalk</option>
+                    <option value="feishu"     {{ if eq .Notification.Type "feishu"     }}selected{{ end }}>Feishu / Lark</option>
+                    <option value="googlechat" {{ if eq .Notification.Type "googlechat" }}selected{{ end }}>Google Chat</option>
+                    <option value="teams"      {{ if eq .Notification.Type "teams"      }}selected{{ end }}>Microsoft Teams</option>
+                    <option value="wecom"      {{ if eq .Notification.Type "wecom"      }}selected{{ end }}>WeCom</option>
+                    <option value="yzj"        {{ if eq .Notification.Type "yzj"        }}selected{{ end }}>YZJ (云之家)</option>
+                    <option value="lunasea"    {{ if eq .Notification.Type "lunasea"    }}selected{{ end }}>LunaSea</option>
+                </optgroup>
+                <optgroup label="Push Notifications">
+                    <option value="telegram"      {{ if eq .Notification.Type "telegram"      }}selected{{ end }}>Telegram</option>
+                    <option value="ntfy"          {{ if eq .Notification.Type "ntfy"          }}selected{{ end }}>ntfy</option>
+                    <option value="gotify"        {{ if eq .Notification.Type "gotify"        }}selected{{ end }}>Gotify</option>
+                    <option value="bark"          {{ if eq .Notification.Type "bark"          }}selected{{ end }}>Bark (iOS)</option>
+                    <option value="gorush"        {{ if eq .Notification.Type "gorush"        }}selected{{ end }}>Gorush</option>
+                    <option value="pushover"      {{ if eq .Notification.Type "pushover"      }}selected{{ end }}>Pushover</option>
+                    <option value="pushplus"      {{ if eq .Notification.Type "pushplus"      }}selected{{ end }}>PushPlus</option>
+                    <option value="serverchan"    {{ if eq .Notification.Type "serverchan"    }}selected{{ end }}>ServerChan (Server酱)</option>
+                    <option value="line"          {{ if eq .Notification.Type "line"          }}selected{{ end }}>LINE Notify</option>
+                    <option value="homeassistant" {{ if eq .Notification.Type "homeassistant" }}selected{{ end }}>Home Assistant</option>
+                </optgroup>
+                <optgroup label="Incident Management">
+                    <option value="pagerduty" {{ if eq .Notification.Type "pagerduty" }}selected{{ end }}>PagerDuty</option>
+                </optgroup>
+                <optgroup label="Messaging Apps">
+                    <option value="matrix"    {{ if eq .Notification.Type "matrix"    }}selected{{ end }}>Matrix / Element</option>
+                    <option value="signal"    {{ if eq .Notification.Type "signal"    }}selected{{ end }}>Signal</option>
+                    <option value="waha"      {{ if eq .Notification.Type "waha"      }}selected{{ end }}>WAHA (WhatsApp HTTP API)</option>
+                    <option value="whapi"     {{ if eq .Notification.Type "whapi"     }}selected{{ end }}>Whapi (WhatsApp)</option>
+                    <option value="onesender" {{ if eq .Notification.Type "onesender" }}selected{{ end }}>OneSender</option>
+                    <option value="onebot"    {{ if eq .Notification.Type "onebot"    }}selected{{ end }}>OneBot (QQ)</option>
+                    <option value="evolution" {{ if eq .Notification.Type "evolution" }}selected{{ end }}>Evolution API (WhatsApp)</option>
+                </optgroup>
+                <optgroup label="Email">
+                    <option value="email"    {{ if eq .Notification.Type "email"    }}selected{{ end }}>Email (SMTP)</option>
+                    <option value="sendgrid" {{ if eq .Notification.Type "sendgrid" }}selected{{ end }}>SendGrid</option>
+                    <option value="resend"   {{ if eq .Notification.Type "resend"   }}selected{{ end }}>Resend</option>
+                    <option value="twilio"   {{ if eq .Notification.Type "twilio"   }}selected{{ end }}>Twilio (SMS)</option>
+                </optgroup>
+                <optgroup label="SMS">
+                    <option value="46elks"       {{ if eq .Notification.Type "46elks"       }}selected{{ end }}>46elks</option>
+                    <option value="brevo"        {{ if eq .Notification.Type "brevo"        }}selected{{ end }}>Brevo SMS</option>
+                    <option value="callmebot"    {{ if eq .Notification.Type "callmebot"    }}selected{{ end }}>CallMeBot</option>
+                    <option value="cellsynt"     {{ if eq .Notification.Type "cellsynt"     }}selected{{ end }}>Cellsynt</option>
+                    <option value="freemobile"   {{ if eq .Notification.Type "freemobile"   }}selected{{ end }}>Free Mobile</option>
+                    <option value="gtxmessaging" {{ if eq .Notification.Type "gtxmessaging" }}selected{{ end }}>GTX Messaging</option>
+                    <option value="octopush"     {{ if eq .Notification.Type "octopush"     }}selected{{ end }}>Octopush</option>
+                    <option value="promosms"     {{ if eq .Notification.Type "promosms"     }}selected{{ end }}>PromoSMS</option>
+                    <option value="serwersms"    {{ if eq .Notification.Type "serwersms"    }}selected{{ end }}>SerwerSMS</option>
+                    <option value="sevenio"      {{ if eq .Notification.Type "sevenio"      }}selected{{ end }}>seven.io</option>
+                    <option value="smsc"         {{ if eq .Notification.Type "smsc"         }}selected{{ end }}>SMSC.ru</option>
+                    <option value="smseagle"     {{ if eq .Notification.Type "smseagle"     }}selected{{ end }}>SMSEagle</option>
+                    <option value="smsir"        {{ if eq .Notification.Type "smsir"        }}selected{{ end }}>SMS.ir</option>
+                    <option value="teltonika"    {{ if eq .Notification.Type "teltonika"    }}selected{{ end }}>Teltonika</option>
+                </optgroup>
             </select>
         </div>
 
-        <!-- Webhook fields -->
+        <!-- ======================================================= -->
+        <!-- Webhook -->
+        <!-- ======================================================= -->
         <div id="fields-webhook" class="provider-fields">
             <div class="form-group">
-                <label for="cfg_url">Webhook URL</label>
-                <input class="form-control" type="url" id="cfg_url" name="cfg_url"
-                       value="{{ index .Config "url" }}"
-                       placeholder="https://hooks.example.com/..." />
+                <label>Webhook URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="https://hooks.example.com/..." />
             </div>
             <div class="form-group">
-                <label for="cfg_secret">Secret (optional — sent as X-Webhook-Secret header)</label>
-                <input class="form-control" type="text" id="cfg_secret" name="cfg_secret"
+                <label>Secret <span class="text-muted">(optional — sent as X-Webhook-Secret header)</span></label>
+                <input class="form-control" type="text" name="cfg_secret"
                        value="{{ index .Config "secret" }}" />
             </div>
         </div>
 
-        <!-- Slack Incoming Webhook fields -->
-        <div id="fields-slack" class="provider-fields">
+        <!-- ======================================================= -->
+        <!-- URL-only (Slack, Discord, Mattermost, Rocket.Chat,      -->
+        <!-- DingTalk, Feishu, Google Chat, Teams, WeCom, YZJ,       -->
+        <!-- LunaSea)                                                 -->
+        <!-- ======================================================= -->
+        <div id="fields-url-plain" class="provider-fields">
             <div class="form-group">
-                <label for="cfg_slack_url">Slack Incoming Webhook URL</label>
-                <input class="form-control" type="url" id="cfg_slack_url" name="cfg_slack_url"
-                       value="{{ index .Config "url" }}"
-                       placeholder="https://hooks.slack.com/services/T.../B.../..." />
-                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
-                    Create at <strong>api.slack.com/apps</strong> → Incoming Webhooks.
-                </small>
+                <label>Incoming Webhook URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="https://..." />
             </div>
         </div>
 
-        <!-- Discord Webhook fields -->
-        <div id="fields-discord" class="provider-fields">
+        <!-- ======================================================= -->
+        <!-- Telegram -->
+        <!-- ======================================================= -->
+        <div id="fields-telegram" class="provider-fields">
             <div class="form-group">
-                <label for="cfg_discord_url">Discord Webhook URL</label>
-                <input class="form-control" type="url" id="cfg_discord_url" name="cfg_discord_url"
-                       value="{{ index .Config "url" }}"
-                       placeholder="https://discord.com/api/webhooks/..." />
-                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
-                    Create via Server Settings → Integrations → Webhooks.
-                </small>
+                <label>Bot Token</label>
+                <input class="form-control" type="text" name="cfg_bot_token"
+                       value="{{ index .Config "bot_token" }}" placeholder="123456789:AABBcc..." />
+                <small class="hint">Create a bot via @BotFather on Telegram, then copy the token it provides.</small>
+            </div>
+            <div class="form-group">
+                <label>Chat ID</label>
+                <input class="form-control" type="text" name="cfg_chat_id"
+                       value="{{ index .Config "chat_id" }}" placeholder="-1001234567890" />
+                <small class="hint">Negative for groups/channels, positive for direct messages. Call /getUpdates on your bot to find it.</small>
             </div>
         </div>
 
-        <!-- ntfy fields -->
+        <!-- ======================================================= -->
+        <!-- ntfy -->
+        <!-- ======================================================= -->
         <div id="fields-ntfy" class="provider-fields">
             <div class="form-group">
-                <label for="cfg_ntfy_topic">Topic</label>
-                <input class="form-control" type="text" id="cfg_ntfy_topic" name="cfg_ntfy_topic"
-                       value="{{ index .Config "topic" }}"
-                       placeholder="my-alerts" />
+                <label>Topic</label>
+                <input class="form-control" type="text" name="cfg_topic"
+                       value="{{ index .Config "topic" }}" placeholder="my-alerts" />
             </div>
             <div class="form-group">
-                <label for="cfg_ntfy_server">Server URL <span style="color:#64748b; font-weight:400;">(optional, default ntfy.sh)</span></label>
-                <input class="form-control" type="url" id="cfg_ntfy_server" name="cfg_ntfy_server"
-                       value="{{ index .Config "server" }}"
-                       placeholder="https://ntfy.sh" />
+                <label>Server URL <span class="text-muted">(optional, default: ntfy.sh)</span></label>
+                <input class="form-control" type="url" name="cfg_server"
+                       value="{{ index .Config "server" }}" placeholder="https://ntfy.sh" />
             </div>
             <div class="form-group">
-                <label for="cfg_ntfy_token">Access Token <span style="color:#64748b; font-weight:400;">(optional)</span></label>
-                <input class="form-control" type="password" id="cfg_ntfy_token" name="cfg_ntfy_token"
+                <label>Access Token <span class="text-muted">(optional)</span></label>
+                <input class="form-control" type="password" name="cfg_token"
                        value="{{ index .Config "token" }}" autocomplete="new-password" />
             </div>
         </div>
 
-        <!-- Telegram fields -->
-        <div id="fields-telegram" class="provider-fields">
+        <!-- ======================================================= -->
+        <!-- Gotify -->
+        <!-- ======================================================= -->
+        <div id="fields-gotify" class="provider-fields">
             <div class="form-group">
-                <label for="cfg_bot_token">Bot Token</label>
-                <input class="form-control" type="text" id="cfg_bot_token" name="cfg_bot_token"
-                       value="{{ index .Config "bot_token" }}"
-                       placeholder="123456789:AABBccdd..." />
+                <label>Server URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="https://gotify.example.com" />
             </div>
             <div class="form-group">
-                <label for="cfg_chat_id">Chat ID</label>
-                <input class="form-control" type="text" id="cfg_chat_id" name="cfg_chat_id"
-                       value="{{ index .Config "chat_id" }}"
-                       placeholder="-1001234567890" />
+                <label>App Token</label>
+                <input class="form-control" type="password" name="cfg_token"
+                       value="{{ index .Config "token" }}" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+                <label>Priority <span class="text-muted">(optional, 0–10, default 5)</span></label>
+                <input class="form-control" type="number" name="cfg_priority"
+                       value="{{ index .Config "priority" }}" min="0" max="10" placeholder="5"
+                       style="max-width:100px;" />
             </div>
         </div>
 
-        <!-- Email fields -->
+        <!-- ======================================================= -->
+        <!-- Bark -->
+        <!-- ======================================================= -->
+        <div id="fields-bark" class="provider-fields">
+            <div class="form-group">
+                <label>Device Key</label>
+                <input class="form-control" type="text" name="cfg_device_key"
+                       value="{{ index .Config "device_key" }}" placeholder="AbCdEfGhIj..." />
+                <small class="hint">Open the Bark app on iOS and copy the device key shown on the main screen.</small>
+            </div>
+            <div class="form-group">
+                <label>Server URL <span class="text-muted">(optional, default: api.day.app)</span></label>
+                <input class="form-control" type="url" name="cfg_server_url"
+                       value="{{ index .Config "server_url" }}" placeholder="https://api.day.app" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Gorush -->
+        <!-- ======================================================= -->
+        <div id="fields-gorush" class="provider-fields">
+            <div class="form-group">
+                <label>Server URL</label>
+                <input class="form-control" type="url" name="cfg_server_url"
+                       value="{{ index .Config "server_url" }}" placeholder="https://gorush.example.com" />
+            </div>
+            <div class="form-group">
+                <label>Device Tokens <span class="text-muted">(comma-separated)</span></label>
+                <input class="form-control" type="text" name="cfg_tokens"
+                       value="{{ index .Config "tokens" }}" placeholder="token1,token2" />
+            </div>
+            <div class="form-group">
+                <label>Platform <span class="text-muted">(optional: 1 = iOS, 2 = Android)</span></label>
+                <input class="form-control" type="text" name="cfg_platform"
+                       value="{{ index .Config "platform" }}" placeholder="2" style="max-width:80px;" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Pushover -->
+        <!-- ======================================================= -->
+        <div id="fields-pushover" class="provider-fields">
+            <div class="form-group">
+                <label>User Key</label>
+                <input class="form-control" type="text" name="cfg_user_key"
+                       value="{{ index .Config "user_key" }}" placeholder="uQiRzpo4DXghDmr9..." />
+                <small class="hint">Found on your dashboard at pushover.net after login.</small>
+            </div>
+            <div class="form-group">
+                <label>API Token</label>
+                <input class="form-control" type="password" name="cfg_api_token"
+                       value="{{ index .Config "api_token" }}" autocomplete="new-password" />
+                <small class="hint">Create an application at pushover.net/apps to obtain a token.</small>
+            </div>
+            <div class="form-group">
+                <label>Device <span class="text-muted">(optional — blank sends to all devices)</span></label>
+                <input class="form-control" type="text" name="cfg_device"
+                       value="{{ index .Config "device" }}" placeholder="iphone" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- PushPlus -->
+        <!-- ======================================================= -->
+        <div id="fields-pushplus" class="provider-fields">
+            <div class="form-group">
+                <label>Token</label>
+                <input class="form-control" type="password" name="cfg_token"
+                       value="{{ index .Config "token" }}" autocomplete="new-password" />
+                <small class="hint">Get your token at pushplus.plus.</small>
+            </div>
+            <div class="form-group">
+                <label>Topic <span class="text-muted">(optional — for group push channel)</span></label>
+                <input class="form-control" type="text" name="cfg_topic"
+                       value="{{ index .Config "topic" }}" placeholder="leave blank for personal" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ServerChan -->
+        <!-- ======================================================= -->
+        <div id="fields-serverchan" class="provider-fields">
+            <div class="form-group">
+                <label>SendKey</label>
+                <input class="form-control" type="password" name="cfg_send_key"
+                       value="{{ index .Config "send_key" }}" autocomplete="new-password" />
+                <small class="hint">Obtain your send key at sct.ftqq.com.</small>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- LINE Notify -->
+        <!-- ======================================================= -->
+        <div id="fields-line" class="provider-fields">
+            <div class="form-group">
+                <label>Access Token</label>
+                <input class="form-control" type="password" name="cfg_token"
+                       value="{{ index .Config "token" }}" autocomplete="new-password" />
+                <small class="hint">Generate a token at notify-bot.line.me/my/.</small>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Home Assistant -->
+        <!-- ======================================================= -->
+        <div id="fields-homeassistant" class="provider-fields">
+            <div class="form-group">
+                <label>Home Assistant URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://homeassistant.local:8123" />
+            </div>
+            <div class="form-group">
+                <label>Long-Lived Access Token</label>
+                <input class="form-control" type="password" name="cfg_token"
+                       value="{{ index .Config "token" }}" autocomplete="new-password" />
+                <small class="hint">Create in HA → Profile → Long-lived access tokens.</small>
+            </div>
+            <div class="form-group">
+                <label>Notification Service</label>
+                <input class="form-control" type="text" name="cfg_notification_id"
+                       value="{{ index .Config "notification_id" }}" placeholder="notify.mobile_app_myphone" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- PagerDuty -->
+        <!-- ======================================================= -->
+        <div id="fields-pagerduty" class="provider-fields">
+            <div class="form-group">
+                <label>Routing Key (Integration Key)</label>
+                <input class="form-control" type="password" name="cfg_routing_key"
+                       value="{{ index .Config "routing_key" }}" autocomplete="new-password"
+                       placeholder="abcdef1234567890abcdef1234567890" />
+                <small class="hint">From PagerDuty → Services → Integrations → Events API v2.</small>
+            </div>
+            <div class="form-group">
+                <label>Severity <span class="text-muted">(optional)</span></label>
+                <select class="form-control" name="cfg_severity" style="width:auto;">
+                    <option value=""        {{ if eq (index .Config "severity") ""        }}selected{{ end }}>— auto (critical/info) —</option>
+                    <option value="critical" {{ if eq (index .Config "severity") "critical" }}selected{{ end }}>critical</option>
+                    <option value="error"    {{ if eq (index .Config "severity") "error"    }}selected{{ end }}>error</option>
+                    <option value="warning"  {{ if eq (index .Config "severity") "warning"  }}selected{{ end }}>warning</option>
+                    <option value="info"     {{ if eq (index .Config "severity") "info"     }}selected{{ end }}>info</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Matrix / Element -->
+        <!-- ======================================================= -->
+        <div id="fields-matrix" class="provider-fields">
+            <div class="form-group">
+                <label>Homeserver URL</label>
+                <input class="form-control" type="url" name="cfg_homeserver_url"
+                       value="{{ index .Config "homeserver_url" }}" placeholder="https://matrix.org" />
+            </div>
+            <div class="form-group">
+                <label>Access Token</label>
+                <input class="form-control" type="password" name="cfg_access_token"
+                       value="{{ index .Config "access_token" }}" autocomplete="new-password" />
+                <small class="hint">Log in with your Matrix client → Settings → copy the access token.</small>
+            </div>
+            <div class="form-group">
+                <label>Room ID</label>
+                <input class="form-control" type="text" name="cfg_room_id"
+                       value="{{ index .Config "room_id" }}" placeholder="!roomId:matrix.org" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Signal (signal-cli-rest-api) -->
+        <!-- ======================================================= -->
+        <div id="fields-signal" class="provider-fields">
+            <div class="form-group">
+                <label>signal-cli-rest-api URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://signal-api:8080" />
+                <small class="hint">URL of your self-hosted signal-cli-rest-api instance.</small>
+            </div>
+            <div class="form-group">
+                <label>Source Phone Number</label>
+                <input class="form-control" type="tel" name="cfg_number"
+                       value="{{ index .Config "number" }}" placeholder="+12025551234" />
+            </div>
+            <div class="form-group">
+                <label>Recipients <span class="text-muted">(comma-separated phone numbers)</span></label>
+                <input class="form-control" type="text" name="cfg_recipients"
+                       value="{{ index .Config "recipients" }}" placeholder="+12025555678,+12025559012" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- WAHA (WhatsApp HTTP API) -->
+        <!-- ======================================================= -->
+        <div id="fields-waha" class="provider-fields">
+            <div class="form-group">
+                <label>WAHA Server URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://waha:3000" />
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone or Group JID</label>
+                <input class="form-control" type="text" name="cfg_phone"
+                       value="{{ index .Config "phone" }}" placeholder="12025551234@s.whatsapp.net" />
+            </div>
+            <div class="form-group">
+                <label>Session <span class="text-muted">(optional, default: default)</span></label>
+                <input class="form-control" type="text" name="cfg_session"
+                       value="{{ index .Config "session" }}" placeholder="default" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Whapi (WhatsApp) -->
+        <!-- ======================================================= -->
+        <div id="fields-whapi" class="provider-fields">
+            <div class="form-group">
+                <label>API Token</label>
+                <input class="form-control" type="password" name="cfg_token"
+                       value="{{ index .Config "token" }}" autocomplete="new-password" />
+                <small class="hint">Get your channel token from app.whapi.cloud.</small>
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone Number</label>
+                <input class="form-control" type="tel" name="cfg_phone"
+                       value="{{ index .Config "phone" }}" placeholder="+12025551234" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- OneSender -->
+        <!-- ======================================================= -->
+        <div id="fields-onesender" class="provider-fields">
+            <div class="form-group">
+                <label>Server URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://onesender:3000" />
+            </div>
+            <div class="form-group">
+                <label>Token</label>
+                <input class="form-control" type="password" name="cfg_token"
+                       value="{{ index .Config "token" }}" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone Number</label>
+                <input class="form-control" type="tel" name="cfg_phone"
+                       value="{{ index .Config "phone" }}" placeholder="+12025551234" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- OneBot (QQ) -->
+        <!-- ======================================================= -->
+        <div id="fields-onebot" class="provider-fields">
+            <div class="form-group">
+                <label>OneBot HTTP URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://onebot:5700" />
+            </div>
+            <div class="form-group">
+                <label>Target (User or Group ID)</label>
+                <input class="form-control" type="text" name="cfg_to"
+                       value="{{ index .Config "to" }}" placeholder="123456789" />
+            </div>
+            <div class="form-group">
+                <label>Message Type <span class="text-muted">(optional)</span></label>
+                <select class="form-control" name="cfg_type" style="width:auto;">
+                    <option value=""        {{ if eq (index .Config "type") ""        }}selected{{ end }}>— auto —</option>
+                    <option value="private" {{ if eq (index .Config "type") "private" }}selected{{ end }}>private</option>
+                    <option value="group"   {{ if eq (index .Config "type") "group"   }}selected{{ end }}>group</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Evolution API (WhatsApp) -->
+        <!-- ======================================================= -->
+        <div id="fields-evolution" class="provider-fields">
+            <div class="form-group">
+                <label>Evolution API URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://evolution:8080" />
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input class="form-control" type="password" name="cfg_api_key"
+                       value="{{ index .Config "api_key" }}" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+                <label>Instance Name</label>
+                <input class="form-control" type="text" name="cfg_instance"
+                       value="{{ index .Config "instance" }}" placeholder="my-whatsapp" />
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone Number</label>
+                <input class="form-control" type="tel" name="cfg_phone"
+                       value="{{ index .Config "phone" }}" placeholder="+12025551234" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Email (SMTP) -->
+        <!-- ======================================================= -->
         <div id="fields-email" class="provider-fields">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="two-col">
                 <div class="form-group">
-                    <label for="cfg_host">SMTP Host</label>
-                    <input class="form-control" type="text" id="cfg_host" name="cfg_host"
+                    <label>SMTP Host</label>
+                    <input class="form-control" type="text" name="cfg_host"
                            value="{{ index .Config "host" }}" placeholder="smtp.gmail.com" />
                 </div>
                 <div class="form-group">
-                    <label for="cfg_port">Port</label>
-                    <input class="form-control" type="text" id="cfg_port" name="cfg_port"
-                           value="{{ index .Config "port" }}" placeholder="465" />
+                    <label>Port</label>
+                    <input class="form-control" type="number" name="cfg_port"
+                           value="{{ index .Config "port" }}" placeholder="465" style="width:100%;" />
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="two-col">
                 <div class="form-group">
-                    <label for="cfg_username">Username</label>
-                    <input class="form-control" type="text" id="cfg_username" name="cfg_username"
+                    <label>Username</label>
+                    <input class="form-control" type="text" name="cfg_username"
                            value="{{ index .Config "username" }}" />
                 </div>
                 <div class="form-group">
-                    <label for="cfg_password">Password</label>
-                    <input class="form-control" type="password" id="cfg_password" name="cfg_password"
-                           value="{{ index .Config "password" }}" />
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="cfg_password"
+                           value="{{ index .Config "password" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>From Address</label>
+                    <input class="form-control" type="email" name="cfg_from"
+                           value="{{ index .Config "from" }}" placeholder="monitor@example.com" />
+                </div>
+                <div class="form-group">
+                    <label>To Address(es) <span class="text-muted">(comma-separated)</span></label>
+                    <input class="form-control" type="text" name="cfg_to"
+                           value="{{ index .Config "to" }}" placeholder="admin@example.com" />
                 </div>
             </div>
             <div class="form-group">
-                <label for="cfg_from">From Address</label>
-                <input class="form-control" type="email" id="cfg_from" name="cfg_from"
-                       value="{{ index .Config "from" }}" placeholder="monitor@example.com" />
-            </div>
-            <div class="form-group">
-                <label for="cfg_to">To Address(es) <span class="text-muted">(comma-separated)</span></label>
-                <input class="form-control" type="text" id="cfg_to" name="cfg_to"
-                       value="{{ index .Config "to" }}" placeholder="admin@example.com, ops@example.com" />
-            </div>
-            <div class="form-group">
                 <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                    <input type="checkbox" id="cfg_tls" name="cfg_tls" value="true"
+                    <input type="checkbox" name="cfg_tls" value="true"
                            {{ if ne (index .Config "tls") "false" }}checked{{ end }} />
                     Use TLS (port 465) — uncheck for STARTTLS (port 587)
                 </label>
             </div>
         </div>
 
-        <div class="form-group" style="margin-top:1rem;">
+        <!-- ======================================================= -->
+        <!-- Email API: SendGrid / Resend / seven.io               -->
+        <!-- (all share: api_key, from, to)                          -->
+        <!-- ======================================================= -->
+        <div id="fields-email-api" class="provider-fields">
+            <div class="form-group">
+                <label>API Key</label>
+                <input class="form-control" type="password" name="cfg_api_key"
+                       value="{{ index .Config "api_key" }}" autocomplete="new-password" />
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>From</label>
+                    <input class="form-control" type="text" name="cfg_from"
+                           value="{{ index .Config "from" }}" placeholder="monitor@example.com or +15551234567" />
+                </div>
+                <div class="form-group">
+                    <label>To</label>
+                    <input class="form-control" type="text" name="cfg_to"
+                           value="{{ index .Config "to" }}" placeholder="alerts@example.com or +15559876543" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Twilio -->
+        <!-- ======================================================= -->
+        <div id="fields-twilio" class="provider-fields">
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Account SID</label>
+                    <input class="form-control" type="text" name="cfg_account_sid"
+                           value="{{ index .Config "account_sid" }}" placeholder="ACxxxxxxxxxxxxxx" />
+                </div>
+                <div class="form-group">
+                    <label>Auth Token</label>
+                    <input class="form-control" type="password" name="cfg_auth_token"
+                           value="{{ index .Config "auth_token" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>From Number</label>
+                    <input class="form-control" type="tel" name="cfg_from"
+                           value="{{ index .Config "from" }}" placeholder="+15551234567" />
+                </div>
+                <div class="form-group">
+                    <label>To Number</label>
+                    <input class="form-control" type="tel" name="cfg_to"
+                           value="{{ index .Config "to" }}" placeholder="+15559876543" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- SMS credentials group: username/password/from/to        -->
+        <!-- Used by: 46elks, Cellsynt, GTX Messaging, SerwerSMS     -->
+        <!-- ======================================================= -->
+        <div id="fields-sms-creds" class="provider-fields">
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input class="form-control" type="text" name="cfg_username"
+                           value="{{ index .Config "username" }}" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="cfg_password"
+                           value="{{ index .Config "password" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>From (sender name or number)</label>
+                    <input class="form-control" type="text" name="cfg_from"
+                           value="{{ index .Config "from" }}" placeholder="+15551234567 or MyBrand" />
+                </div>
+                <div class="form-group">
+                    <label>To (recipient number)</label>
+                    <input class="form-control" type="tel" name="cfg_to"
+                           value="{{ index .Config "to" }}" placeholder="+15559876543" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Brevo SMS -->
+        <!-- ======================================================= -->
+        <div id="fields-brevo" class="provider-fields">
+            <div class="form-group">
+                <label>API Key</label>
+                <input class="form-control" type="password" name="cfg_api_key"
+                       value="{{ index .Config "api_key" }}" autocomplete="new-password" />
+                <small class="hint">Brevo → Settings → API Keys.</small>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Sender Name</label>
+                    <input class="form-control" type="text" name="cfg_sender_name"
+                           value="{{ index .Config "sender_name" }}" placeholder="ServiceMon" />
+                </div>
+                <div class="form-group">
+                    <label>Sender Phone</label>
+                    <input class="form-control" type="tel" name="cfg_sender_sms"
+                           value="{{ index .Config "sender_sms" }}" placeholder="+15551234567" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone</label>
+                <input class="form-control" type="tel" name="cfg_to"
+                       value="{{ index .Config "to" }}" placeholder="+15559876543" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- CallMeBot -->
+        <!-- ======================================================= -->
+        <div id="fields-callmebot" class="provider-fields">
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input class="form-control" type="tel" name="cfg_phone"
+                       value="{{ index .Config "phone" }}" placeholder="+12025551234" />
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input class="form-control" type="password" name="cfg_apikey"
+                       value="{{ index .Config "apikey" }}" autocomplete="new-password" />
+                <small class="hint">Request a free key by messaging the CallMeBot bot on WhatsApp or Signal.</small>
+            </div>
+            <div class="form-group">
+                <label>Message Platform</label>
+                <select class="form-control" name="cfg_type" style="width:auto;">
+                    <option value="whatsapp" {{ if ne (index .Config "type") "signal" }}selected{{ end }}>WhatsApp</option>
+                    <option value="signal"   {{ if eq (index .Config "type") "signal" }}selected{{ end }}>Signal</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Free Mobile -->
+        <!-- ======================================================= -->
+        <div id="fields-freemobile" class="provider-fields">
+            <div class="form-group">
+                <label>Free Mobile Login (phone number)</label>
+                <input class="form-control" type="text" name="cfg_user"
+                       value="{{ index .Config "user" }}" placeholder="0611223344" />
+            </div>
+            <div class="form-group">
+                <label>Notification Key</label>
+                <input class="form-control" type="password" name="cfg_pass"
+                       value="{{ index .Config "pass" }}" autocomplete="new-password" />
+                <small class="hint">Enable SMS notifications in your Free Mobile account to obtain the key.</small>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Octopush -->
+        <!-- ======================================================= -->
+        <div id="fields-octopush" class="provider-fields">
+            <div class="two-col">
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input class="form-control" type="password" name="cfg_api_key"
+                           value="{{ index .Config "api_key" }}" autocomplete="new-password" />
+                </div>
+                <div class="form-group">
+                    <label>API Login (email)</label>
+                    <input class="form-control" type="text" name="cfg_api_login"
+                           value="{{ index .Config "api_login" }}" placeholder="your@email.com" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recipients <span class="text-muted">(comma-separated)</span></label>
+                <input class="form-control" type="text" name="cfg_recipients"
+                       value="{{ index .Config "recipients" }}" placeholder="+33612345678,+33612345679" />
+            </div>
+            <div class="form-group">
+                <label>Sender Name</label>
+                <input class="form-control" type="text" name="cfg_sender"
+                       value="{{ index .Config "sender" }}" placeholder="ServiceMon" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- PromoSMS -->
+        <!-- ======================================================= -->
+        <div id="fields-promosms" class="provider-fields">
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Login</label>
+                    <input class="form-control" type="text" name="cfg_login"
+                           value="{{ index .Config "login" }}" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="cfg_password"
+                           value="{{ index .Config "password" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>From</label>
+                    <input class="form-control" type="text" name="cfg_from"
+                           value="{{ index .Config "from" }}" placeholder="+15551234567 or MyBrand" />
+                </div>
+                <div class="form-group">
+                    <label>To</label>
+                    <input class="form-control" type="tel" name="cfg_to"
+                           value="{{ index .Config "to" }}" placeholder="+48600100200" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- SMSC.ru -->
+        <!-- ======================================================= -->
+        <div id="fields-smsc" class="provider-fields">
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Login</label>
+                    <input class="form-control" type="text" name="cfg_login"
+                           value="{{ index .Config "login" }}" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="cfg_password"
+                           value="{{ index .Config "password" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Phone Numbers <span class="text-muted">(comma-separated)</span></label>
+                <input class="form-control" type="text" name="cfg_phones"
+                       value="{{ index .Config "phones" }}" placeholder="+79161234567,+79167654321" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- SMSEagle -->
+        <!-- ======================================================= -->
+        <div id="fields-smseagle" class="provider-fields">
+            <div class="form-group">
+                <label>SMSEagle Device URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://192.168.1.100" />
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Login</label>
+                    <input class="form-control" type="text" name="cfg_login"
+                           value="{{ index .Config "login" }}" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="cfg_password"
+                           value="{{ index .Config "password" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone</label>
+                <input class="form-control" type="tel" name="cfg_to"
+                       value="{{ index .Config "to" }}" placeholder="+15559876543" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- SMS.ir -->
+        <!-- ======================================================= -->
+        <div id="fields-smsir" class="provider-fields">
+            <div class="form-group">
+                <label>API Key</label>
+                <input class="form-control" type="password" name="cfg_api_key"
+                       value="{{ index .Config "api_key" }}" autocomplete="new-password" />
+                <small class="hint">Get your API key at app.sms.ir.</small>
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Line Number</label>
+                    <input class="form-control" type="text" name="cfg_line_number"
+                           value="{{ index .Config "line_number" }}" placeholder="30004820" />
+                </div>
+                <div class="form-group">
+                    <label>Mobile (recipient)</label>
+                    <input class="form-control" type="tel" name="cfg_mobile"
+                           value="{{ index .Config "mobile" }}" placeholder="+989121234567" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Teltonika -->
+        <!-- ======================================================= -->
+        <div id="fields-teltonika" class="provider-fields">
+            <div class="form-group">
+                <label>Router URL</label>
+                <input class="form-control" type="url" name="cfg_url"
+                       value="{{ index .Config "url" }}" placeholder="http://192.168.1.1" />
+            </div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input class="form-control" type="text" name="cfg_username"
+                           value="{{ index .Config "username" }}" placeholder="admin" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="cfg_password"
+                           value="{{ index .Config "password" }}" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone</label>
+                <input class="form-control" type="tel" name="cfg_phone"
+                       value="{{ index .Config "phone" }}" placeholder="+15559876543" />
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- Active + Submit -->
+        <!-- ======================================================= -->
+        <div class="form-group" style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid #334155;">
             <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
                 <input type="checkbox" name="active" value="on"
                        {{ if .Notification.Active }}checked{{ end }} />
@@ -185,16 +877,43 @@
 
     </div>
     <script>
+        // Providers that map to the shared "url-plain" section.
+        const URL_PLAIN = new Set([
+            'slack','discord','mattermost','rocketchat',
+            'dingding','feishu','googlechat','teams','wecom','yzj','lunasea'
+        ]);
+        // Providers that share the "sms-creds" section (username/password/from/to).
+        const SMS_CREDS = new Set(['46elks','cellsynt','gtxmessaging','serwersms']);
+        // Providers that share the "email-api" section (api_key/from/to).
+        const EMAIL_API = new Set(['sendgrid','resend','sevenio']);
+
+        function sectionFor(type) {
+            if (URL_PLAIN.has(type)) return 'url-plain';
+            if (SMS_CREDS.has(type)) return 'sms-creds';
+            if (EMAIL_API.has(type)) return 'email-api';
+            return type;
+        }
+
         function showFields(type) {
-            document.querySelectorAll('.provider-fields').forEach(el => el.classList.remove('active'));
-            if (type) {
-                const el = document.getElementById('fields-' + type);
-                if (el) el.classList.add('active');
+            // Disable every cfg input in every provider section so the browser
+            // does not submit values from inactive sections.
+            document.querySelectorAll(
+                '.provider-fields input, .provider-fields select, .provider-fields textarea'
+            ).forEach(el => { el.disabled = true; });
+            document.querySelectorAll('.provider-fields')
+                    .forEach(el => el.classList.remove('active'));
+
+            if (!type) return;
+            const section = document.getElementById('fields-' + sectionFor(type));
+            if (section) {
+                section.classList.add('active');
+                section.querySelectorAll('input, select, textarea')
+                       .forEach(el => { el.disabled = false; });
             }
         }
-        // Show fields for current type on page load
-        const currentType = document.getElementById('type').value;
-        if (currentType) showFields(currentType);
+
+        // Activate the correct section on initial page load.
+        showFields(document.getElementById('type').value);
     </script>
 </body>
 </html>

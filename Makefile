@@ -43,7 +43,7 @@ coverage:
 .PHONY: lint
 lint:
 	go vet ./...
-	@grep -rn '\.Exec\b\|\.Query\b\|\.QueryRow\b' --include='*.go' internal/ cmd/ | grep -v 'c\.Query(' | grep -v 'c\.PostForm(' && echo "ERROR: use ExecContext/QueryContext/QueryRowContext instead" && exit 1 || echo "noctx: OK"
+	@grep -rn '\.Exec\b\|\.Query\b\|\.QueryRow\b' --include='*.go' internal/ cmd/ | grep -v 'c\.Query(' | grep -v 'c\.PostForm(' | grep -v '\.URL\.Query(' | grep -v '\.URL\.Query()' && echo "ERROR: use ExecContext/QueryContext/QueryRowContext instead" && exit 1 || echo "noctx: OK"
 	@command -v staticcheck >/dev/null && staticcheck ./... || echo "staticcheck not installed, skipping"
 
 ## clean: remove build artifacts
