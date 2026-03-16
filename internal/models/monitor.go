@@ -6,16 +6,21 @@ import "time"
 type MonitorType string
 
 const (
-	MonitorTypeHTTP     MonitorType = "http"
-	MonitorTypeTCP      MonitorType = "tcp"
-	MonitorTypePing     MonitorType = "ping"
-	MonitorTypeDNS      MonitorType = "dns"
-	MonitorTypePush     MonitorType = "push"
-	MonitorTypeSMTP     MonitorType = "smtp"
-	MonitorTypeMySQL    MonitorType = "mysql"
-	MonitorTypePostgres MonitorType = "postgres"
-	MonitorTypeRedis    MonitorType = "redis"
-	MonitorTypeMongoDB  MonitorType = "mongodb"
+	MonitorTypeHTTP      MonitorType = "http"
+	MonitorTypeTCP       MonitorType = "tcp"
+	MonitorTypePing      MonitorType = "ping"
+	MonitorTypeDNS       MonitorType = "dns"
+	MonitorTypePush      MonitorType = "push"
+	MonitorTypeSMTP      MonitorType = "smtp"
+	MonitorTypeMySQL     MonitorType = "mysql"
+	MonitorTypePostgres  MonitorType = "postgres"
+	MonitorTypeRedis     MonitorType = "redis"
+	MonitorTypeMongoDB   MonitorType = "mongodb"
+	MonitorTypeWebSocket MonitorType = "websocket"
+	MonitorTypeMSSQL     MonitorType = "mssql"
+	MonitorTypeMQTT      MonitorType = "mqtt"
+	MonitorTypeGRPC      MonitorType = "grpc"
+	MonitorTypeDocker    MonitorType = "docker"
 )
 
 // Monitor represents a monitored target.
@@ -65,8 +70,24 @@ type Monitor struct {
 	SMTPUsername  string `db:"smtp_username"`   // optional AUTH PLAIN username
 	SMTPPassword  string `db:"smtp_password"`   // optional AUTH PLAIN password
 
-	// Database monitor fields (mysql, postgres, redis, mongodb)
+	// Database monitor fields (mysql, postgres, redis, mongodb, mssql)
 	DBQuery string `db:"db_query"` // optional query/command; empty = just connect/ping
+
+	// MQTT monitor fields
+	MQTTTopic    string `db:"mqtt_topic"`    // MQTT topic to subscribe to
+	MQTTUsername string `db:"mqtt_username"` // MQTT broker username
+	MQTTPassword string `db:"mqtt_password"` // MQTT broker password
+
+	// gRPC monitor fields
+	GRPCProtobuf    string `db:"grpc_protobuf"`     // protobuf definition string for custom calls
+	GRPCServiceName string `db:"grpc_service_name"` // service name for health check or custom call
+	GRPCMethod      string `db:"grpc_method"`       // method name for custom proto calls
+	GRPCBody        string `db:"grpc_body"`         // JSON request body for custom proto calls
+	GRPCEnableTLS   bool   `db:"grpc_enable_tls"`   // use TLS when connecting to gRPC endpoint
+
+	// Docker container monitor fields
+	DockerHostID      int64  `db:"docker_host_id"`      // FK to docker_hosts.id; 0 = local socket
+	DockerContainerID string `db:"docker_container_id"` // container name or short ID to check
 
 	// TLS certificate expiry alert (HTTP only)
 	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled

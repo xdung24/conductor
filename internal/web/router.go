@@ -40,6 +40,63 @@ func templateFuncMap() template.FuncMap {
 			}
 			return s[start:end]
 		},
+		// typeLabel returns a human-readable label for a notification provider type.
+		"typeLabel": func(t string) string {
+			labels := map[string]string{
+				"webhook":       "Webhook",
+				"slack":         "Slack",
+				"discord":       "Discord",
+				"ntfy":          "ntfy",
+				"telegram":      "Telegram",
+				"email":         "Email (SMTP)",
+				"mattermost":    "Mattermost",
+				"rocketchat":    "Rocket.Chat",
+				"dingding":      "DingTalk",
+				"feishu":        "Feishu / Lark",
+				"googlechat":    "Google Chat",
+				"teams":         "MS Teams",
+				"wecom":         "WeCom",
+				"yzj":           "YZJ",
+				"lunasea":       "LunaSea",
+				"gotify":        "Gotify",
+				"bark":          "Bark",
+				"gorush":        "Gorush",
+				"pushover":      "Pushover",
+				"pushplus":      "PushPlus",
+				"serverchan":    "ServerChan",
+				"line":          "LINE Notify",
+				"homeassistant": "Home Assistant",
+				"pagerduty":     "PagerDuty",
+				"matrix":        "Matrix",
+				"signal":        "Signal",
+				"waha":          "WAHA",
+				"whapi":         "Whapi",
+				"onesender":     "OneSender",
+				"onebot":        "OneBot",
+				"evolution":     "Evolution API",
+				"sendgrid":      "SendGrid",
+				"resend":        "Resend",
+				"twilio":        "Twilio",
+				"46elks":        "46elks",
+				"brevo":         "Brevo SMS",
+				"callmebot":     "CallMeBot",
+				"cellsynt":      "Cellsynt",
+				"freemobile":    "Free Mobile",
+				"gtxmessaging":  "GTX Messaging",
+				"octopush":      "Octopush",
+				"promosms":      "PromoSMS",
+				"serwersms":     "SerwerSMS",
+				"sevenio":       "seven.io",
+				"smsc":          "SMSC.ru",
+				"smseagle":      "SMSEagle",
+				"smsir":         "SMS.ir",
+				"teltonika":     "Teltonika",
+			}
+			if l, ok := labels[t]; ok {
+				return l
+			}
+			return t
+		},
 	}
 }
 

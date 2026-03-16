@@ -18,18 +18,18 @@ This document tracks which features are implemented, in progress, or planned.
 | HTTP — JSON Query | ✅ Done | JSONPath expression + optional expected value assertion |
 | HTTP — XML / SOAP XPath Query | ✅ Done | XPath expression on XML/SOAP response body + optional expected value assertion |
 | HTTP — Accepted status codes | ✅ Done | Comma-separated list, e.g. `200,404`; empty = 2xx/3xx |
-| WebSocket Upgrade | ⬜ Planned | Verify WS handshake succeeds |
+| WebSocket Upgrade | ✅ Done | Dial ws:// or wss://; verify 101 Switching Protocols; optional TLS skip |
 | SMTP | ✅ Done | EHLO + optional STARTTLS + optional AUTH PLAIN |
 | SNMP | ⬜ Planned | Get OID value, optional assert |
-| MQTT | ⬜ Planned | Subscribe, verify broker responds |
-| Docker Container | ⬜ Planned | Container running/healthy via Docker socket or HTTP API |
+| MQTT | ✅ Done | Connect to broker, subscribe to topic, wait for message; optional keyword assertion |
+| Docker Container | ✅ Done | Container running/healthy via Docker Unix socket or TCP HTTP API; health check status reported |
 | MySQL / MariaDB | ✅ Done | Connection string DSN + optional query (default `SELECT 1`) |
 | PostgreSQL | ✅ Done | Connection string DSN + optional query (default `SELECT 1`) |
-| Microsoft SQL Server | ⬜ Planned | TCP + simple query |
+| Microsoft SQL Server | ✅ Done | Connection string DSN + optional query (default `SELECT 1`) |
 | MongoDB | ✅ Done | mongo-driver ping + optional admin command (e.g. `{"ping":1}`) |
 | Redis | ✅ Done | Raw RESP PING/PONG; optional AUTH (Redis 6+ ACL); `host:port` or `user:pass@host:port` |
 | RabbitMQ | ⬜ Planned | Management API health check |
-| gRPC Keyword | ⬜ Planned | gRPC call, keyword match on response |
+| gRPC Keyword | ✅ Done | Standard `grpc.health.v1.Health/Check`; optional keyword assertion on status string; TLS support |
 | SIP Options | ⬜ Planned | SIP OPTIONS request |
 | Radius | ⬜ Planned | Authentication request |
 | Steam | ⬜ Planned | Steam Web API query |
@@ -77,10 +77,94 @@ This document tracks which features are implemented, in progress, or planned.
 | Maintenance windows | ✅ Done | Suppress alerts during scheduled downtime; per-monitor or global |
 | Tags / labels on monitors | ✅ Done | Color-coded labels; assign to monitors; displayed on dashboard |
 | Proxy management | ⬜ Planned | Shared proxy config referenced by monitors |
-| Docker host management | ⬜ Planned | Registered Docker daemons for Docker monitor |
+| Docker host management | ✅ Done | `docker_hosts` table + `DockerHostStore` CRUD; Unix socket or TCP HTTP URL; migration 0007; resolved at check time via `DockerHostLookup` callback |
 | API keys | ✅ Done | SHA-256 hashed tokens; `Authorization: Bearer` auth alongside session cookies |
 | 2FA (TOTP) | ✅ Done | `pquerna/otp`; QR code setup page; two-step login flow; per-user opt-in |
-| Additional notification providers | ✅ Done (Slack, Discord, ntfy); ⬜ Planned (PagerDuty, Gotify, others) |
+| Notification providers: Slack | ✅ Done | |
+| Notification providers: Discord | ✅ Done | |
+| Notification providers: ntfy | ✅ Done | |
+| Notification providers: 360Messenger | ⬜ Planned | |
+| Notification providers: 46Elks | ✅ Done | SMS via 46elks API |
+| Notification providers: Alerta | ⬜ Planned | |
+| Notification providers: AlertNow | ⬜ Planned | |
+| Notification providers: Aliyun SMS | ⬜ Planned | |
+| Notification providers: Apprise | ⬜ Planned | Meta-provider wrapping 50+ services |
+| Notification providers: Bale | ⬜ Planned | |
+| Notification providers: Bark | ✅ Done | iOS push via Bark app |
+| Notification providers: Bitrix24 | ⬜ Planned | |
+| Notification providers: Brevo | ✅ Done | Transactional email/SMS |
+| Notification providers: CallMeBot | ✅ Done | WhatsApp / Signal via CallMeBot |
+| Notification providers: Cellsynt | ✅ Done | SMS |
+| Notification providers: ClickSend SMS | ⬜ Planned | |
+| Notification providers: DingDing | ✅ Done | DingTalk webhook |
+| Notification providers: Evolution | ✅ Done | WhatsApp via Evolution API |
+| Notification providers: Feishu | ✅ Done | Lark / Feishu webhook |
+| Notification providers: FlashDuty | ⬜ Planned | |
+| Notification providers: Fluxer | ⬜ Planned | |
+| Notification providers: FreeMobile | ✅ Done | French SMS |
+| Notification providers: GoAlert | ⬜ Planned | |
+| Notification providers: Google Chat | ✅ Done | Google Chat webhook |
+| Notification providers: Google Sheets | ⬜ Planned | Append rows to a spreadsheet |
+| Notification providers: Gorush | ✅ Done | Push via Gorush server |
+| Notification providers: Gotify | ✅ Done | Self-hosted push; server URL + app token |
+| Notification providers: Grafana OnCall | ⬜ Planned | |
+| Notification providers: GTX Messaging | ✅ Done | SMS |
+| Notification providers: HaloPSA | ⬜ Planned | |
+| Notification providers: Heii On-Call | ⬜ Planned | |
+| Notification providers: Home Assistant | ✅ Done | HA notification service |
+| Notification providers: Jira Service Management | ⬜ Planned | Create incidents |
+| Notification providers: Keep | ⬜ Planned | |
+| Notification providers: Kook | ⬜ Planned | |
+| Notification providers: LINE | ✅ Done | LINE Notify |
+| Notification providers: LunaSea | ✅ Done | Self-hosted push |
+| Notification providers: Matrix | ✅ Done | Home server + access token + room ID |
+| Notification providers: Mattermost | ✅ Done | Incoming webhook |
+| Notification providers: Nextcloud Talk | ⬜ Planned | |
+| Notification providers: Nostr | ⬜ Planned | |
+| Notification providers: Notifery | ⬜ Planned | |
+| Notification providers: Octopush | ✅ Done | SMS |
+| Notification providers: OneBot | ✅ Done | QQ via OneBot protocol |
+| Notification providers: OneChat | ⬜ Planned | |
+| Notification providers: OneSender | ✅ Done | WhatsApp |
+| Notification providers: OpsGenie | ⬜ Planned | |
+| Notification providers: PagerDuty | ✅ Done | Events API v2; routing key + severity |
+| Notification providers: PagerTree | ⬜ Planned | |
+| Notification providers: PromoSMS | ✅ Done | SMS |
+| Notification providers: Pumble | ⬜ Planned | |
+| Notification providers: Pushbullet | ⬜ Planned | |
+| Notification providers: PushDeer | ⬜ Planned | |
+| Notification providers: Pushover | ✅ Done | User key + API token + optional device |
+| Notification providers: PushPlus | ✅ Done | WeChat push |
+| Notification providers: Pushy | ⬜ Planned | |
+| Notification providers: Resend | ✅ Done | Transactional email via Resend API |
+| Notification providers: Rocket.Chat | ✅ Done | Incoming webhook |
+| Notification providers: SendGrid | ✅ Done | Transactional email |
+| Notification providers: ServerChan | ✅ Done | WeChat push |
+| Notification providers: SerwerSMS | ✅ Done | SMS (Poland) |
+| Notification providers: Seven.io | ✅ Done | SMS |
+| Notification providers: Signal | ✅ Done | Via signal-cli REST API |
+| Notification providers: SIGNL4 | ⬜ Planned | |
+| Notification providers: SMSC | ✅ Done | SMS |
+| Notification providers: SMSEagle | ✅ Done | SMS via SMSEagle device |
+| Notification providers: SMS.ir | ✅ Done | SMS (Iran) |
+| Notification providers: SMS Manager | ⬜ Planned | |
+| Notification providers: SMS Planet | ⬜ Planned | |
+| Notification providers: Splunk | ⬜ Planned | |
+| Notification providers: SpugPush | ⬜ Planned | |
+| Notification providers: Squadcast | ⬜ Planned | |
+| Notification providers: Stackfield | ⬜ Planned | |
+| Notification providers: Microsoft Teams | ✅ Done | Incoming webhook |
+| Notification providers: Techulus Push | ⬜ Planned | |
+| Notification providers: Teltonika | ✅ Done | SMS via Teltonika router |
+| Notification providers: Threema | ⬜ Planned | |
+| Notification providers: Twilio | ✅ Done | SMS / voice |
+| Notification providers: WAHA | ✅ Done | WhatsApp HTTP API |
+| Notification providers: WebPush | ⬜ Planned | Browser push notifications |
+| Notification providers: WeCom | ✅ Done | WeCom (WeChat Work) webhook |
+| Notification providers: Whapi | ✅ Done | WhatsApp via Whapi |
+| Notification providers: WPush | ⬜ Planned | |
+| Notification providers: YZJ | ✅ Done | Yunji via webhook |
+| Notification providers: Zoho Cliq | ⬜ Planned | |
 | Remote browser config | ⬜ Planned | Chromium endpoint for real-browser checks |
 | Cloudflare Tunnel integration | ⬜ Planned | Expose via cloudflared without open port |
 | Dark/light theme toggle | ✅ Done | User preference stored in `sm_theme` cookie; toggled from navbar |

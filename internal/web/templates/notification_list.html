@@ -50,13 +50,7 @@
     {{ range .Notifications }}
     <tr>
         <td>{{ .Name }}</td>
-        <td>
-            {{ if eq .Type "webhook" }}��� Webhook            {{ else if eq .Type "slack" }}💬 Slack
-            {{ else if eq .Type "discord" }}🎮 Discord
-            {{ else if eq .Type "ntfy" }}🔔 ntfy            {{ else if eq .Type "telegram" }}✈️ Telegram
-            {{ else if eq .Type "email" }}✉️ Email
-            {{ else }}{{ .Type }}{{ end }}
-        </td>
+        <td>{{ typeLabel .Type }}</td>
         <td>
             {{ if .Active }}
                 <span class="badge badge-up">Active</span>
