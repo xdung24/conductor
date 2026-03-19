@@ -1,0 +1,77 @@
+{{ define "docs.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation – ServiceMonitor</title>
+    {{ template "styles" . }}
+    <style>
+        .docs-body { max-width: 860px; margin: 0 auto; }
+        .docs-body h2 {
+            font-size: 1.3rem; font-weight: 700; color: #f1f5f9;
+            margin: 2.5rem 0 0.75rem; padding-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+        }
+        .docs-body h3 { font-size: 1rem; font-weight: 600; color: #93c5fd; margin: 1.3rem 0 0.4rem; }
+        .docs-body p { line-height: 1.7; color: #cbd5e1; margin-bottom: 0.75rem; font-size: 0.925rem; }
+        .docs-body ul, .docs-body ol {
+            padding-left: 1.5rem; margin-bottom: 0.75rem; color: #cbd5e1; font-size: 0.925rem;
+        }
+        .docs-body li { margin-bottom: 0.3rem; line-height: 1.6; }
+        .docs-body a { color: #60a5fa; }
+        .docs-body code {
+            background: #0f172a; border: 1px solid #334155; border-radius: 0.3rem;
+            padding: 0.1rem 0.4rem; font-size: 0.85em; color: #7dd3fc; font-family: monospace;
+        }
+        .docs-body pre {
+            background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem;
+            padding: 1rem; overflow-x: auto; margin-bottom: 0.75rem;
+        }
+        .docs-body pre code {
+            background: none; border: none; padding: 0; font-size: 0.875rem; color: #e2e8f0;
+        }
+        .docs-body table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-bottom: 1rem; }
+        .docs-body th {
+            color: #64748b; font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 0.05em; padding: 0.5rem 0.75rem; text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        .docs-body td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #1e293b; color: #cbd5e1; vertical-align: top; }
+        .docs-body tr:last-child td { border-bottom: none; }
+        .docs-body tr:hover td { background: rgba(255,255,255,0.02); }
+        .docs-body blockquote {
+            border-left: 3px solid #3b82f6; background: rgba(59,130,246,0.08);
+            padding: 0.75rem 1rem; border-radius: 0 0.5rem 0.5rem 0;
+            margin: 0.75rem 0; color: #bfdbfe; font-size: 0.9rem;
+        }
+        .docs-body blockquote p { color: #bfdbfe; margin: 0; }
+        .docs-body hr { border: none; border-top: 1px solid #334155; margin: 2rem 0; }
+
+        /* Light theme overrides */
+        [data-theme="light"] .docs-body h2 { color: #0f172a; border-bottom-color: #e2e8f0; }
+        [data-theme="light"] .docs-body h3 { color: #1d4ed8; }
+        [data-theme="light"] .docs-body p,
+        [data-theme="light"] .docs-body li { color: #334155; }
+        [data-theme="light"] .docs-body ul,
+        [data-theme="light"] .docs-body ol { color: #334155; }
+        [data-theme="light"] .docs-body code { background: #f1f5f9; border-color: #cbd5e1; color: #0369a1; }
+        [data-theme="light"] .docs-body pre { background: #f8fafc; border-color: #e2e8f0; }
+        [data-theme="light"] .docs-body pre code { color: #1e293b; }
+        [data-theme="light"] .docs-body th { color: #64748b; border-bottom-color: #e2e8f0; }
+        [data-theme="light"] .docs-body td { color: #334155; border-bottom-color: #f1f5f9; }
+        [data-theme="light"] .docs-body tr:hover td { background: rgba(0,0,0,0.02); }
+        [data-theme="light"] .docs-body blockquote { background: rgba(59,130,246,0.06); color: #1d4ed8; }
+        [data-theme="light"] .docs-body blockquote p { color: #1d4ed8; }
+        [data-theme="light"] .docs-body hr { border-top-color: #e2e8f0; }
+    </style>
+</head>
+<body>
+{{ template "navbar" . }}
+<div class="container">
+    <h1 class="page-title">Documentation</h1>
+    <div class="docs-body">{{ .Content }}</div>
+</div>
+</body>
+</html>
+{{ end }}

@@ -154,28 +154,37 @@ func (h *Handler) StatusPagePublic(c *gin.Context) {
 	bStore := models.NewHeartbeatStore(db)
 
 	type entry struct {
-		Monitor   *models.Monitor
-		Uptime24h float64
+		Monitor       *models.Monitor
+		Uptime24h     float64
+		LatestStatus  int
 	}
 	now := time.Now()
-	var entries []entry
+	var monitors []entry
+	allOperational := true
 	for _, mid := range monitorIDs {
 		m, err := mStore.Get(mid)
 		if err != nil || m == nil {
 			continue
 		}
+		latestStatus := -1 // -1 = pending/unknown
 		beats, _ := bStore.Latest(m.ID, 1)
 		if len(beats) > 0 {
 			m.LastStatus = &beats[0].Status
 			m.LastLatency = &beats[0].LatencyMs
+			latestStatus = beats[0].Status
+		}
+		if latestStatus != 1 {
+			allOperational = false
 		}
 		uptime24h, _ := bStore.UptimePercent(m.ID, now.Add(-24*time.Hour))
-		entries = append(entries, entry{Monitor: m, Uptime24h: uptime24h})
+		monitors = append(monitors, entry{Monitor: m, Uptime24h: uptime24h, LatestStatus: latestStatus})
 	}
 
 	c.HTML(http.StatusOK, "status_page_public.html", gin.H{
-		"Page":    page,
-		"Entries": entries,
+		"Page":           page,
+		"Monitors":       monitors,
+		"AllOperational": allOperational && len(monitors) > 0,
+		"Now":            now.Format("2006-01-02 15:04:05 UTC"),
 	})
 }
 

@@ -14,6 +14,7 @@ require (
 	github.com/microsoft/go-mssqldb v1.9.8
 	github.com/pquerna/otp v1.5.0
 	github.com/segmentio/kafka-go v0.4.50
+	github.com/yuin/goldmark v1.4.13
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	golang.org/x/crypto v0.48.0
 	google.golang.org/grpc v1.79.2

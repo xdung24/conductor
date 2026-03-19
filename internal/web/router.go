@@ -208,6 +208,9 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.POST("/account/2fa/verify", h.TwoFAVerify)
 		auth.POST("/account/2fa/disable", h.TwoFADisable)
 
+		// Documentation
+		auth.GET("/docs", h.DocsPage)
+
 		// Settings (per-user, e.g. theme)
 		auth.POST("/settings/theme", h.ThemeToggle)
 	}

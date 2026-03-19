@@ -31,6 +31,9 @@
         align-items: center;
         justify-content: space-between;
         height: 56px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
     .navbar-brand { font-weight: 700; font-size: 1.1rem; color: #f1f5f9; }
     .navbar-brand span { color: #38bdf8; }
@@ -142,7 +145,6 @@
         <a href="/" style="color:#94a3b8; font-size:0.875rem;">Monitors</a>
         <a href="/notifications/logs" style="color:#94a3b8; font-size:0.875rem;">Notifications</a>
         <a href="/status-pages" style="color:#94a3b8; font-size:0.875rem;">Status Pages</a>
-        <a href="/maintenance" style="color:#94a3b8; font-size:0.875rem;">Maintenance</a>
         <form method="POST" action="/settings/theme" style="display:inline; margin:0;">
             <button type="submit" title="Toggle theme"
                     style="background:none; border:1px solid #334155; border-radius:0.4rem; color:#94a3b8;
@@ -157,11 +159,15 @@
                 <a href="/tags">Tags</a>
                 <a href="/api-keys">API Keys</a>
                 <a href="/account/2fa">2FA</a>
+                <a href="/maintenance">Maintenance</a>
                 {{ if .IsAdmin }}
                 <hr class="nav-dropdown-divider">
                 <a href="/admin/users">Users</a>
                 <a href="/admin/settings">Admin Settings</a>
                 {{ end }}
+                <hr class="nav-dropdown-divider">
+                <a href="/docs">Docs</a>
+                <a href="https://github.com/xdung24/service-monitor" target="_blank" rel="noopener noreferrer">GitHub &#x2197;</a>
                 <hr class="nav-dropdown-divider">
                 <a href="/logout">Logout</a>
             </div>

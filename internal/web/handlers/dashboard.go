@@ -40,6 +40,7 @@ type Handler struct {
 	msched   *scheduler.MultiScheduler // per-user schedulers
 	cfg      *config.Config
 	users    *models.UserStore // backed by usersDB
+	docsHTML template.HTML     // pre-rendered docs markdown (rendered once at startup)
 }
 
 // New creates a Handler.
@@ -48,6 +49,7 @@ func New(usersDB *sql.DB, registry *database.Registry, msched *scheduler.MultiSc
 		usersDB:  usersDB,
 		registry: registry,
 		msched:   msched,
+		docsHTML: renderDocsMarkdown(),
 		cfg:      cfg,
 		users:    models.NewUserStore(usersDB),
 	}

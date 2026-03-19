@@ -88,7 +88,7 @@
         {{ if .Monitor }}
         {{ if eq .LatestStatus 1 }}
         <span class="dot dot-up"></span>
-        {{ else if eq .LatestStatus 0 }}
+        {{ else if lt .LatestStatus 0 }}
         <span class="dot dot-pend"></span>
         {{ else }}
         <span class="dot dot-down"></span>
