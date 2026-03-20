@@ -682,10 +682,10 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		return m, &formError{"name is required"}
 	}
 	noURLTypes := map[models.MonitorType]bool{
-		models.MonitorTypePush:          true,
-		models.MonitorTypeManual:        true,
-		models.MonitorTypeGroup:         true,
-		models.MonitorTypeSystemService: true,
+		models.MonitorTypePush:       true,
+		models.MonitorTypeManual:     true,
+		models.MonitorTypeGroup:      true,
+		models.MonitorTypeSystemType: true,
 	}
 	if monURL == "" && !noURLTypes[monType] {
 		return m, &formError{"url is required"}

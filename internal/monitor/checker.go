@@ -85,7 +85,7 @@ func checkerFor(m *models.Monitor) Checker {
 		return &RabbitMQChecker{}
 	case models.MonitorTypeSNMP:
 		return &SNMPChecker{}
-	case models.MonitorTypeSystemService:
+	case models.MonitorTypeSystemType:
 		return &SystemServiceChecker{}
 	case models.MonitorTypeTailscale:
 		return &TailscaleChecker{}
