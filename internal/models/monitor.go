@@ -121,6 +121,9 @@ type Monitor struct {
 	RadiusSecret          string `db:"radius_secret"`            // RADIUS shared secret
 	RadiusCalledStationID string `db:"radius_called_station_id"` // optional Called-Station-Id attribute value
 
+	// Proxy settings (HTTP only)
+	ProxyID int64 `db:"proxy_id"` // FK to proxies.id; 0 = no proxy
+
 	// TLS certificate expiry alert (HTTP only)
 	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled
 

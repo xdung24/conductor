@@ -71,6 +71,16 @@ func main() {
 		return h.SocketPath, h.HTTPURL
 	}
 
+	// Set up ProxyLookup so the HTTP checker can resolve proxy_id values to
+	// their proxy URL at schedule time using the per-user DB.
+	monitor.ProxyLookup = func(db *sql.DB, id int64) string {
+		p, err := models.NewProxyStore(db).Get(id)
+		if err != nil || p == nil {
+			return ""
+		}
+		return p.URL
+	}
+
 	// On first startup (no users) generate a short-lived registration token and
 	// print the setup URL to the console so the operator can create the admin account.
 	if len(existingUsers) == 0 {

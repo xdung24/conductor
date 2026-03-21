@@ -191,10 +191,28 @@ Every provider has unit tests (field-validation + `httptest` HTTP roundtrip).
 
 ## Phase 5 — Infrastructure
 
-### 5.1 Proxy Management
-- Migration 0018: `proxies(id, name, protocol, host, port, username, password)` + add `proxy_id INT` to monitors
-- In `HTTPChecker`: if `proxy_id` set, configure `http.Transport.Proxy`
-- Handlers: `/proxies/*` CRUD
+### 5.1 Proxy Management ✅
+- Migration 0014: `proxies(id, name, url)` + `proxy_id INTEGER NOT NULL DEFAULT 0` on monitors
+- `monitor.ProxyLookup` callback (like `DockerHostLookup`) resolves proxy FK to URL at schedule time
+- `NewHTTPClient(m, proxyURL string)`: configures `http.Transport.Proxy` when proxyURL non-empty
+- Scheduler resolves proxy URL for HTTP monitors when building the cached `*http.Client`
+- Handlers: `/proxies/*` CRUD (ProxyList, ProxyNew, ProxyCreate, ProxyEdit, ProxyUpdate, ProxyDelete)
+- Template: `proxies.html` management page; navbar link added
+- Monitor form: proxy dropdown in HTTP fields section (`AllProxies` data key)
+
+### 5.2 HTTP Client Reuse ✅
+- Cache one `*http.Client` per monitor inside the `Scheduler` (keyed by monitor ID) via `monitor.NewHTTPClient(m)`
+- Client built at `Schedule()` time; evicted at `Unschedule()`/`Stop()` (Transport releases idle sockets)
+- Eliminates fresh TCP + TLS handshake on every HTTP check; Transport connection pool reused across checks
+- Applies to HTTP/HTTPS and RabbitMQ monitor types
+- `monitor.Cache` struct threads the optional cached client/connection from scheduler → checkerFor → checker
+
+### 5.3 Database Connection Pool ✅
+- Cache one `*sql.DB` per monitor inside the `Scheduler` via `monitor.NewDBConn(m)`
+- Pool built at `Schedule()` time; explicitly closed and evicted at `Unschedule()`/`Stop()`
+- Eliminates `sql.Open()` + TCP handshake + auth round-trip on every DB check
+- Applies to MySQL, PostgreSQL, and MSSQL monitor types
+- Pool settings: `MaxOpenConns(1)`, `MaxIdleConns(1)`, `ConnMaxLifetime(5m)`, `ConnMaxIdleTime(2m)`
 
 ---
 

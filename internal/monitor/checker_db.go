@@ -24,6 +24,32 @@ import (
 	"github.com/xdung24/conductor/internal/models"
 )
 
+// NewDBConn opens and configures a persistent *sql.DB connection pool for
+// MySQL, PostgreSQL, and MSSQL monitors. Returns nil for other monitor types.
+// The caller is responsible for closing the returned *sql.DB when done.
+func NewDBConn(m *models.Monitor) *sql.DB {
+	var driver string
+	switch m.Type {
+	case models.MonitorTypeMySQL:
+		driver = "mysql"
+	case models.MonitorTypePostgres:
+		driver = "postgres"
+	case models.MonitorTypeMSSQL:
+		driver = "sqlserver"
+	default:
+		return nil
+	}
+	db, err := sql.Open(driver, m.URL)
+	if err != nil {
+		return nil
+	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(2 * time.Minute)
+	return db
+}
+
 // ---------------------------------------------------------------------------
 // MySQL / MariaDB checker
 // ---------------------------------------------------------------------------
@@ -35,21 +61,26 @@ import (
 //
 //	user:password@tcp(host:port)/dbname
 //	user:password@tcp(host:port)/dbname?tls=skip-verify
-type MySQLChecker struct{}
+type MySQLChecker struct {
+	conn *sql.DB // optional cached connection pool; if nil a new connection is opened per check
+}
 
 // Check opens a MySQL connection, pings the server, and optionally executes
 // the configured query. Returns UP with latency on success.
 func (c *MySQLChecker) Check(ctx context.Context, m *models.Monitor) Result {
 	start := time.Now()
 
-	db, err := sql.Open("mysql", m.URL)
-	if err != nil {
-		return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+	db := c.conn
+	if db == nil {
+		var err error
+		db, err = sql.Open("mysql", m.URL)
+		if err != nil {
+			return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+		}
+		defer db.Close() //nolint:errcheck
+		db.SetMaxOpenConns(1)
+		db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
 	}
-	defer db.Close() //nolint:errcheck
-
-	db.SetMaxOpenConns(1)
-	db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
 
 	if err := db.PingContext(ctx); err != nil {
 		return Result{Status: 0, Message: fmt.Sprintf("ping: %v", err)}
@@ -84,21 +115,26 @@ func (c *MySQLChecker) Check(ctx context.Context, m *models.Monitor) Result {
 //
 //	postgres://user:password@host:port/dbname?sslmode=disable
 //	host=localhost port=5432 user=postgres password=secret dbname=mydb sslmode=disable
-type PostgresChecker struct{}
+type PostgresChecker struct {
+	conn *sql.DB // optional cached connection pool; if nil a new connection is opened per check
+}
 
 // Check opens a PostgreSQL connection, pings the server, and optionally
 // executes the configured query. Returns UP with latency on success.
 func (c *PostgresChecker) Check(ctx context.Context, m *models.Monitor) Result {
 	start := time.Now()
 
-	db, err := sql.Open("postgres", m.URL)
-	if err != nil {
-		return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+	db := c.conn
+	if db == nil {
+		var err error
+		db, err = sql.Open("postgres", m.URL)
+		if err != nil {
+			return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+		}
+		defer db.Close() //nolint:errcheck
+		db.SetMaxOpenConns(1)
+		db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
 	}
-	defer db.Close() //nolint:errcheck
-
-	db.SetMaxOpenConns(1)
-	db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
 
 	if err := db.PingContext(ctx); err != nil {
 		return Result{Status: 0, Message: fmt.Sprintf("ping: %v", err)}
@@ -287,21 +323,26 @@ func (c *MongoDBChecker) Check(ctx context.Context, m *models.Monitor) Result {
 //
 //	sqlserver://user:password@host:port?database=dbname
 //	server=host;user id=user;password=pass;database=dbname
-type MSSQLChecker struct{}
+type MSSQLChecker struct {
+	conn *sql.DB // optional cached connection pool; if nil a new connection is opened per check
+}
 
 // Check opens a SQL Server connection, pings the server, and optionally
 // executes the configured query. Returns UP with latency on success.
 func (c *MSSQLChecker) Check(ctx context.Context, m *models.Monitor) Result {
 	start := time.Now()
 
-	db, err := sql.Open("sqlserver", m.URL)
-	if err != nil {
-		return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+	db := c.conn
+	if db == nil {
+		var err error
+		db, err = sql.Open("sqlserver", m.URL)
+		if err != nil {
+			return Result{Status: 0, Message: fmt.Sprintf("open: %v", err)}
+		}
+		defer db.Close() //nolint:errcheck
+		db.SetMaxOpenConns(1)
+		db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
 	}
-	defer db.Close() //nolint:errcheck
-
-	db.SetMaxOpenConns(1)
-	db.SetConnMaxLifetime(time.Duration(m.TimeoutSeconds) * time.Second)
 
 	if err := db.PingContext(ctx); err != nil {
 		return Result{Status: 0, Message: fmt.Sprintf("ping: %v", err)}

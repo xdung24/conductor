@@ -13,7 +13,9 @@ import (
 // RabbitMQChecker connects to the RabbitMQ management HTTP API and calls the
 // node health endpoint.  The monitor URL must point to the management API root,
 // e.g. http://user:pass@rabbitmq.example.com:15672.
-type RabbitMQChecker struct{}
+type RabbitMQChecker struct {
+	client *http.Client // optional cached client; if nil a fresh one is built per check
+}
 
 // Check performs a RabbitMQ health check via the management plugin.
 //
@@ -35,10 +37,12 @@ func (c *RabbitMQChecker) Check(ctx context.Context, m *models.Monitor) Result {
 		req.SetBasicAuth(m.HTTPUsername, m.HTTPPassword)
 	}
 
-	transport := &http.Transport{}
-	client := &http.Client{Transport: transport}
+	httpClient := c.client
+	if httpClient == nil {
+		httpClient = &http.Client{Transport: &http.Transport{}}
+	}
 
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return Result{Status: 0, Message: err.Error()}
 	}

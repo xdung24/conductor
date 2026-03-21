@@ -76,8 +76,10 @@ This document tracks which features are implemented, in progress, or planned.
 | Public status page | ✅ Done | Read-only page at `/status/:username/:slug` showing selected monitors with 24h uptime, sparklines, and interactive latency/downtime chart |
 | Maintenance windows | ✅ Done | Suppress alerts during scheduled downtime; per-monitor or global |
 | Tags / labels on monitors | ✅ Done | Color-coded labels; assign to monitors; displayed on dashboard |
-| Proxy management | ⬜ Planned | Shared proxy config referenced by monitors |
+| Proxy management | ✅ Done | Shared proxy config referenced by monitors |
 | Docker host management | ✅ Done | `docker_hosts` table + `DockerHostStore` CRUD; Unix socket or TCP HTTP URL; migration 0007; resolved at check time via `DockerHostLookup` callback |
+| HTTP client reuse | ✅ Done | One `*http.Client` cached per monitor in scheduler; reuses TCP+TLS connections across checks (HTTP, RabbitMQ) |
+| DB connection pool | ✅ Done | One `*sql.DB` cached per monitor in scheduler; reuses connections across checks (MySQL, PostgreSQL, MSSQL) |
 | API keys | ✅ Done | SHA-256 hashed tokens; `Authorization: Bearer` auth alongside session cookies |
 | 2FA (TOTP) | ✅ Done | `pquerna/otp`; QR code setup page; two-step login flow; per-user opt-in |
 | Notification providers: Slack | ✅ Done | |

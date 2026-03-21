@@ -21,7 +21,7 @@ func TestCheckerFor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		m := &models.Monitor{Type: tt.monitorType}
-		got := checkerFor(nil, m)
+		got := checkerFor(nil, Cache{}, m)
 		gotType := fmt.Sprintf("%T", got)
 		if gotType != tt.wantType {
 			t.Errorf("checkerFor(%q) = %s, want %s", tt.monitorType, gotType, tt.wantType)

@@ -1,0 +1,122 @@
+{{ define "proxies.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proxies — Conductor</title>
+    {{ template "styles" . }}
+    <style>
+    [data-theme="light"] .hint { color: #475569; }
+    .hint { color: #64748b; font-size: 0.775rem; margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">Proxies</h1>
+    <a href="/proxies/new" class="btn btn-primary">+ New Proxy</a>
+</div>
+
+{{ if .Flash }}
+<div class="alert alert-success" style="margin-bottom:1rem;">{{ .Flash }}</div>
+{{ end }}
+
+{{ if .Error }}
+<div class="alert alert-danger" style="margin-bottom:1rem;">{{ .Error }}</div>
+{{ end }}
+
+{{/* ---- Inline Create form ---- */}}
+{{ if .NewForm }}
+<div class="card" style="margin-bottom:1.5rem; padding:1.5rem;">
+    <h2 style="margin:0 0 1.25rem; font-size:1.1rem;">New Proxy</h2>
+    <form method="POST" action="/proxies">
+        <div class="form-group">
+            <label for="name">Name <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="text" id="name" name="name"
+                   value="{{ .Proxy.Name }}" placeholder="e.g. Corporate Proxy" required />
+        </div>
+        <div class="form-group">
+            <label for="url">Proxy URL <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="text" id="url" name="url"
+                   value="{{ .Proxy.URL }}"
+                   placeholder="http://user:pass@proxy.example.com:8080" required />
+            <p class="hint">Full URL including scheme, optional credentials, host and port.
+                Supported schemes: <code>http</code>, <code>https</code>, <code>socks5</code>.</p>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary">Create Proxy</button>
+            <a href="/proxies" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{/* ---- Inline Edit form ---- */}}
+{{ if .EditProxy }}
+<div class="card" style="margin-bottom:1.5rem; padding:1.5rem;">
+    <h2 style="margin:0 0 1.25rem; font-size:1.1rem;">Edit Proxy</h2>
+    <form method="POST" action="/proxies/{{ .EditProxy.ID }}">
+        <div class="form-group">
+            <label for="name_edit">Name <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="text" id="name_edit" name="name"
+                   value="{{ .EditProxy.Name }}" required />
+        </div>
+        <div class="form-group">
+            <label for="url_edit">Proxy URL <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="text" id="url_edit" name="url"
+                   value="{{ .EditProxy.URL }}"
+                   placeholder="http://user:pass@proxy.example.com:8080" required />
+            <p class="hint">Full URL including scheme, optional credentials, host and port.</p>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/proxies" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{/* ---- Proxies table ---- */}}
+{{ if .Proxies }}
+<div class="card" style="padding:0; overflow:hidden;">
+    <table class="table" style="margin:0;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th style="text-align:center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .Proxies }}
+        <tr>
+            <td style="font-weight:500; color:#e2e8f0;">{{ .Name }}</td>
+            <td style="font-size:0.8125rem; color:#94a3b8; font-family:monospace;">{{ .URL }}</td>
+            <td style="text-align:center; white-space:nowrap;">
+                <a href="/proxies/{{ .ID }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+                <form method="POST" action="/proxies/{{ .ID }}/delete" style="display:inline;"
+                      onsubmit="return confirm('Delete proxy &quot;{{ .Name | js }}&quot;?')">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+{{ else if not .NewForm }}
+{{ if not .EditProxy }}
+<div class="card" style="text-align:center; padding:2.5rem; color:#64748b;">
+    <p style="font-size:1rem; margin-bottom:1rem;">No proxies configured yet.</p>
+    <a href="/proxies/new" class="btn btn-primary">Add your first proxy</a>
+</div>
+{{ end }}
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}
