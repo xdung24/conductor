@@ -207,6 +207,14 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.POST("/docker-hosts/:id", h.DockerHostUpdate)
 		auth.POST("/docker-hosts/:id/delete", h.DockerHostDelete)
 
+		// Proxies
+		auth.GET("/proxies", h.ProxyList)
+		auth.GET("/proxies/new", h.ProxyNew)
+		auth.POST("/proxies", h.ProxyCreate)
+		auth.GET("/proxies/:id/edit", h.ProxyEdit)
+		auth.POST("/proxies/:id", h.ProxyUpdate)
+		auth.POST("/proxies/:id/delete", h.ProxyDelete)
+
 		// API Keys
 		auth.GET("/api-keys", h.APIKeyList)
 		auth.POST("/api-keys", h.APIKeyCreate)

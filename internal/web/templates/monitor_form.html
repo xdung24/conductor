@@ -283,6 +283,23 @@
                     within this many days. Useful for catching certificate renewals before they lapse.
                 </small>
             </div>
+            {{ if .AllProxies }}
+            <div class="form-group">
+                <label for="proxy_id">HTTP Proxy <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                <select class="form-control" id="proxy_id" name="proxy_id">
+                    <option value="0">None (direct connection)</option>
+                    {{ range .AllProxies }}
+                    <option value="{{ .ID }}" {{ if eq $.Monitor.ProxyID .ID }}selected{{ end }}>
+                        {{ .Name }} ({{ .URL }})
+                    </option>
+                    {{ end }}
+                </select>
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Route this monitor's HTTP requests through a proxy.
+                    <a href="/proxies" style="color:#38bdf8;">Manage proxies</a>
+                </small>
+            </div>
+            {{ end }}
         </div>
 
         <!-- SMTP options (shown only for smtp type) -->

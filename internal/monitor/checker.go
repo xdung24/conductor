@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -33,10 +34,24 @@ type Checker interface {
 // per-user database that stores the docker_hosts table.
 var DockerHostLookup func(db *sql.DB, id int64) (socketPath, httpURL string)
 
+// ProxyLookup is an optional callback that resolves a proxy ID to its URL
+// string (e.g. "http://user:pass@host:8080"). The db parameter is the
+// per-user database that stores the proxies table. Returns "" when not found.
+var ProxyLookup func(db *sql.DB, id int64) string
+
+// Cache holds optional pre-created network resources that are reused across
+// repeated checks of the same monitor to reduce per-check connection overhead.
+// The zero value is safe: each checker falls back to creating a fresh connection.
+type Cache struct {
+	HTTPClient *http.Client // reused for HTTP/HTTPS and RabbitMQ monitors
+	DBConn     *sql.DB      // reused connection pool for MySQL, PostgreSQL, MSSQL monitors
+}
+
 // Run performs the appropriate check for a monitor (with retry logic).
 // db is the per-user database used for per-user resource lookups (e.g. docker hosts).
-func Run(ctx context.Context, db *sql.DB, m *models.Monitor) Result {
-	checker := checkerFor(db, m)
+// cache holds optional pre-built network resources reused across consecutive checks.
+func Run(ctx context.Context, db *sql.DB, cache Cache, m *models.Monitor) Result {
+	checker := checkerFor(db, cache, m)
 	timeout := time.Duration(m.TimeoutSeconds) * time.Second
 
 	var last Result
@@ -51,7 +66,7 @@ func Run(ctx context.Context, db *sql.DB, m *models.Monitor) Result {
 	return last
 }
 
-func checkerFor(db *sql.DB, m *models.Monitor) Checker {
+func checkerFor(db *sql.DB, cache Cache, m *models.Monitor) Checker {
 	switch m.Type {
 	case models.MonitorTypeDNS:
 		return &DNSChecker{}
@@ -62,15 +77,15 @@ func checkerFor(db *sql.DB, m *models.Monitor) Checker {
 	case models.MonitorTypeSMTP:
 		return &SMTPChecker{}
 	case models.MonitorTypeMySQL:
-		return &MySQLChecker{}
+		return &MySQLChecker{conn: cache.DBConn}
 	case models.MonitorTypePostgres:
-		return &PostgresChecker{}
+		return &PostgresChecker{conn: cache.DBConn}
 	case models.MonitorTypeRedis:
 		return &RedisChecker{}
 	case models.MonitorTypeMongoDB:
 		return &MongoDBChecker{}
 	case models.MonitorTypeMSSQL:
-		return &MSSQLChecker{}
+		return &MSSQLChecker{conn: cache.DBConn}
 	case models.MonitorTypeWebSocket:
 		return &WebSocketChecker{}
 	case models.MonitorTypeMQTT:
@@ -84,7 +99,7 @@ func checkerFor(db *sql.DB, m *models.Monitor) Checker {
 		}
 		return dc
 	case models.MonitorTypeRabbitMQ:
-		return &RabbitMQChecker{}
+		return &RabbitMQChecker{client: cache.HTTPClient}
 	case models.MonitorTypeSNMP:
 		return &SNMPChecker{}
 	case models.MonitorTypeSystemType:
@@ -104,7 +119,41 @@ func checkerFor(db *sql.DB, m *models.Monitor) Checker {
 	case models.MonitorTypeRadius:
 		return &RadiusChecker{}
 	default:
-		return &HTTPChecker{}
+		return &HTTPChecker{client: cache.HTTPClient}
+	}
+}
+
+// NewHTTPClient builds an *http.Client configured for the given monitor.
+// proxyURL, when non-empty, configures an HTTP/HTTPS proxy for all requests.
+// The returned client has no global timeout (rely on per-request context
+// deadlines from Run), making it safe to reuse across multiple checks.
+func NewHTTPClient(m *models.Monitor, proxyURL string) *http.Client {
+	d := dialerFor(m)
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: m.HTTPIgnoreTLS}, // #nosec G402 -- user opt-in
+		DialContext:     d.DialContext,
+	}
+	if proxyURL != "" {
+		if parsed, err := url.Parse(proxyURL); err == nil {
+			transport.Proxy = http.ProxyURL(parsed)
+		}
+	}
+	maxRedirects := m.HTTPMaxRedirects
+	if maxRedirects < 0 {
+		maxRedirects = 10
+	}
+	return &http.Client{
+		// No global Timeout: requests are bounded by the context deadline set in Run().
+		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if maxRedirects == 0 {
+				return http.ErrUseLastResponse
+			}
+			if len(via) >= maxRedirects {
+				return fmt.Errorf("too many redirects (max %d)", maxRedirects)
+			}
+			return nil
+		},
 	}
 }
 
@@ -140,33 +189,16 @@ func dialerFor(m *models.Monitor) net.Dialer {
 // ---------------------------------------------------------------------------
 
 // HTTPChecker checks an HTTP/HTTPS endpoint.
-type HTTPChecker struct{}
+type HTTPChecker struct {
+	client *http.Client // optional cached client; if nil NewHTTPClient(m) is called per check
+}
 
 // Check performs an HTTP/HTTPS request and records status + latency.
 // Supports custom method, TLS skip, auth, accepted status codes, and keyword matching.
 func (c *HTTPChecker) Check(ctx context.Context, m *models.Monitor) Result {
-	d := dialerFor(m)
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: m.HTTPIgnoreTLS}, // #nosec G402 -- user opt-in
-		DialContext:     d.DialContext,
-	}
-
-	maxRedirects := m.HTTPMaxRedirects
-	if maxRedirects < 0 {
-		maxRedirects = 10
-	}
-	client := &http.Client{
-		Timeout:   time.Duration(m.TimeoutSeconds) * time.Second,
-		Transport: transport,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if maxRedirects == 0 {
-				return http.ErrUseLastResponse
-			}
-			if len(via) >= maxRedirects {
-				return fmt.Errorf("too many redirects (max %d)", maxRedirects)
-			}
-			return nil
-		},
+	client := c.client
+	if client == nil {
+		client = NewHTTPClient(m, "")
 	}
 
 	method := m.HTTPMethod

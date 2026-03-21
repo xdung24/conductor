@@ -26,6 +26,10 @@ type Scheduler struct {
 	mu             sync.Mutex
 	ctx            context.Context
 	cancel         context.CancelFunc
+	// Per-monitor network resource caches (keyed by monitor ID).
+	// Created at Schedule time, closed and evicted at Unschedule/Stop time.
+	caches   map[int64]monitor.Cache
+	cachesMu sync.Mutex
 }
 
 type job struct {
@@ -46,6 +50,7 @@ func New(db *sql.DB) *Scheduler {
 		maintenance:    models.NewMaintenanceStore(db),
 		downtimeEvents: models.NewDowntimeEventStore(db),
 		jobs:           make(map[int64]*job),
+		caches:         make(map[int64]monitor.Cache),
 		ctx:            ctx,
 		cancel:         cancel,
 	}
@@ -67,14 +72,21 @@ func (s *Scheduler) Start() {
 	log.Printf("scheduler: started %d monitor(s)", len(s.jobs))
 }
 
-// Stop cancels all running jobs.
+// Stop cancels all running jobs and releases cached network resources.
 func (s *Scheduler) Stop() {
 	s.cancel()
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	for _, j := range s.jobs {
 		close(j.stop)
 	}
+	s.mu.Unlock()
+	s.cachesMu.Lock()
+	for _, cache := range s.caches {
+		if cache.DBConn != nil {
+			cache.DBConn.Close() //nolint:errcheck
+		}
+	}
+	s.cachesMu.Unlock()
 }
 
 // Schedule adds or replaces the schedule for a single monitor.
@@ -101,6 +113,22 @@ func (s *Scheduler) Schedule(m *models.Monitor) {
 	s.mu.Lock()
 	s.jobs[m.ID] = j
 	s.mu.Unlock()
+
+	// Build and cache network resources for this monitor.
+	var cache monitor.Cache
+	switch m.Type {
+	case models.MonitorTypeHTTP, models.MonitorTypeRabbitMQ:
+		proxyURL := ""
+		if m.Type == models.MonitorTypeHTTP && m.ProxyID > 0 && monitor.ProxyLookup != nil {
+			proxyURL = monitor.ProxyLookup(s.db, m.ProxyID)
+		}
+		cache.HTTPClient = monitor.NewHTTPClient(m, proxyURL)
+	case models.MonitorTypeMySQL, models.MonitorTypePostgres, models.MonitorTypeMSSQL:
+		cache.DBConn = monitor.NewDBConn(m)
+	}
+	s.cachesMu.Lock()
+	s.caches[m.ID] = cache
+	s.cachesMu.Unlock()
 
 	// Run immediately on first schedule
 	go s.runCheck(m)
@@ -132,18 +160,30 @@ func (s *Scheduler) Schedule(m *models.Monitor) {
 	}()
 }
 
-// Unschedule stops the job for a given monitor ID.
+// Unschedule stops the job for a given monitor ID and releases its cached resources.
 func (s *Scheduler) Unschedule(id int64) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if j, ok := s.jobs[id]; ok {
 		close(j.stop)
 		delete(s.jobs, id)
 	}
+	s.mu.Unlock()
+	s.cachesMu.Lock()
+	if cache, ok := s.caches[id]; ok {
+		if cache.DBConn != nil {
+			cache.DBConn.Close() //nolint:errcheck
+		}
+		delete(s.caches, id)
+	}
+	s.cachesMu.Unlock()
 }
 
 func (s *Scheduler) runCheck(m *models.Monitor) {
-	result := monitor.Run(s.ctx, s.db, m)
+	s.cachesMu.Lock()
+	cache := s.caches[m.ID]
+	s.cachesMu.Unlock()
+
+	result := monitor.Run(s.ctx, s.db, cache, m)
 
 	now := time.Now().UTC()
 
