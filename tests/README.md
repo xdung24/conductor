@@ -4,8 +4,8 @@ This directory contains functional tests (Bruno) and performance tests (k6).
 
 ```
 tests/
-  functional-tests/     Bruno collection — API correctness checks
-  performance-tests/    k6 scripts — load and performance tests
+  functional/     Bruno collection — API correctness checks
+  performance/    k6 scripts — load and performance tests
 ```
 
 ---
@@ -48,9 +48,9 @@ Verify: `k6 version`
 
 ### Functional tests — Bruno environment
 
-Environments live in `functional-tests/environments/`. The default `local.bru` targets `http://localhost:3001`.
+Environments live in `functional/environments/`. The default `local.bru` targets `http://localhost:3001`.
 
-To override, edit `functional-tests/environments/local.bru`:
+To override, edit `functional/environments/local.bru`:
 
 ```
 vars {
@@ -62,22 +62,15 @@ Or add a new environment file (e.g. `staging.bru`) with the same structure and p
 
 ### Performance tests — k6 environment
 
-k6 reads variables from the OS environment via `__ENV`. Pass them with the `-e` flag:
+Environment config files live in `performance/environments/`. The default is `local.json`:
 
-```bash
-k6 run -e BASE_URL=http://localhost:3001 performance-tests/get-healthz.k6
+```json
+{
+  "baseUrl": "http://localhost:3001"
+}
 ```
 
-To load from a `.env` file first:
-
-```bash
-# Linux/macOS
-set -a && source .env && set +a && k6 run performance-tests/get-healthz.k6
-
-# PowerShell (Windows)
-Get-Content .env | ForEach-Object { $k,$v = $_ -split '=',2; [System.Environment]::SetEnvironmentVariable($k,$v) }
-k6 run performance-tests/get-healthz.k6
-```
+To target a different environment, create a new JSON file (e.g. `staging.json`) with the same structure and pass its name via `ENV` when running.
 
 ---
 
@@ -106,8 +99,11 @@ A passing run exits with code `0`. Any failed assertion exits with a non-zero co
 ### 2. Performance tests (k6)
 
 ```bash
-# Run the healthz load test
-k6 run -e BASE_URL=http://localhost:3001 get-healthz.k6
+# Run against the default local environment
+k6 run get-healthz.k6
+
+# Run against a different environment
+k6 run -e ENV=staging get-healthz.k6
 ```
 
 The script ramps up to 10 virtual users over 10 s, holds for 30 s, then ramps down.
