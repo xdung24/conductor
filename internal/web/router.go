@@ -150,7 +150,8 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 	auth := r.Group("/")
 	auth.Use(h.AuthRequired())
 	{
-		auth.GET("/", h.Dashboard)
+		auth.GET("/", func(c *gin.Context) { c.Redirect(http.StatusFound, "/monitors") })
+		auth.GET("/monitors", h.Dashboard)
 
 		// Monitors
 		auth.GET("/monitors/new", h.MonitorNew)

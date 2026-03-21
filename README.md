@@ -63,15 +63,6 @@ Each user's data is isolated in their own SQLite file. The shared `users.db` hol
 docker compose up --build
 ```
 
-## Build
-
-```bash
-make build   # compile binary
-make run     # build + run
-make test    # run tests
-make lint    # vet + staticcheck
-```
-
 ## Project Structure
 
 ```

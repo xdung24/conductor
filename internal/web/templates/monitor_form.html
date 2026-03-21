@@ -13,7 +13,7 @@
 
 <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
     {{ if .IsNew }}
-    <a href="/" style="color:#64748b;">&#8592; Back</a>
+    <a href="/monitors" style="color:#64748b;">&#8592; Back</a>
     {{ else }}
     <a href="/monitors/{{ .Monitor.ID }}" style="color:#64748b;">&#8592; Back</a>
     {{ end }}
@@ -756,7 +756,7 @@
             <button type="submit" class="btn btn-primary">
                 {{ if .IsNew }}Create Monitor{{ else }}Save Changes{{ end }}
             </button>
-            <a href="/" class="btn btn-ghost">Cancel</a>
+            <a href="/monitors" class="btn btn-ghost">Cancel</a>
         </div>
     </form>
 </div>

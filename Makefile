@@ -27,11 +27,6 @@ dev:
 test:
 	go test ./... -v
 
-## check-templates: parse all HTML templates for errors
-.PHONY: check-templates
-check-templates:
-	go test ./internal/web/... -run TestTemplatesParse -v
-
 ## coverage: run tests and generate HTML coverage report
 .PHONY: coverage
 coverage:
@@ -61,11 +56,6 @@ docker-build:
 .PHONY: docker-run
 docker-run:
 	docker compose up --build
-
-## tidy: clean up go.mod / go.sum
-.PHONY: tidy
-tidy:
-	go mod tidy
 
 .PHONY: help
 help:
