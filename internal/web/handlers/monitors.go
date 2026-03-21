@@ -19,6 +19,7 @@ import (
 func (h *Handler) MonitorNew(c *gin.Context) {
 	allNotifs, _ := h.notifStore(c).List()
 	allTags, _ := h.tagStore(c).List()
+	allDockerHosts, _ := h.dockerHostStore(c).List()
 	c.HTML(http.StatusOK, "monitor_form.html", h.pageData(c, gin.H{
 		"Monitor":        &models.Monitor{IntervalSeconds: 60, TimeoutSeconds: 30, Retries: 1, NotifyOnFailure: true, NotifyOnSuccess: true},
 		"IsNew":          true,
@@ -28,6 +29,7 @@ func (h *Handler) MonitorNew(c *gin.Context) {
 		"NotifSummaries": notifSummaryMap(allNotifs),
 		"AllTags":        allTags,
 		"LinkedTagIDs":   map[int64]bool{},
+		"AllDockerHosts": allDockerHosts,
 	}))
 }
 
@@ -37,11 +39,13 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 	if err != nil {
 		allNotifs, _ := h.notifStore(c).List()
 		allTags, _ := h.tagStore(c).List()
+		allDockerHosts, _ := h.dockerHostStore(c).List()
 		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{
 			"Monitor": m, "IsNew": true, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
+			"AllDockerHosts": allDockerHosts,
 		})
 		return
 	}
@@ -55,11 +59,13 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 	if err != nil {
 		allNotifs, _ := h.notifStore(c).List()
 		allTags, _ := h.tagStore(c).List()
+		allDockerHosts, _ := h.dockerHostStore(c).List()
 		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{
 			"Monitor": m, "IsNew": true, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
+			"AllDockerHosts": allDockerHosts,
 		})
 		return
 	}
@@ -118,6 +124,7 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 	for _, t := range linkedTags {
 		linkedTagIDs[t.ID] = true
 	}
+	allDockerHosts, _ := h.dockerHostStore(c).List()
 	c.HTML(http.StatusOK, "monitor_form.html", h.pageData(c, gin.H{
 		"Monitor":        m,
 		"IsNew":          false,
@@ -127,6 +134,7 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 		"NotifSummaries": notifSummaryMap(allNotifs),
 		"AllTags":        allTags,
 		"LinkedTagIDs":   linkedTagIDs,
+		"AllDockerHosts": allDockerHosts,
 	}))
 }
 
@@ -152,11 +160,13 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 		for _, t := range linkedTags {
 			linkedTagIDs[t.ID] = true
 		}
+		allDockerHosts, _ := h.dockerHostStore(c).List()
 		c.HTML(http.StatusBadRequest, "monitor_form.html", gin.H{
 			"Monitor": m, "IsNew": false, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": linkedIDs,
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": linkedTagIDs,
+			"AllDockerHosts": allDockerHosts,
 		})
 		return
 	}
@@ -179,11 +189,13 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 	if err := h.monitorStore(c).Update(updated); err != nil {
 		allNotifs, _ := nstore.List()
 		allTags, _ := h.tagStore(c).List()
+		allDockerHosts, _ := h.dockerHostStore(c).List()
 		c.HTML(http.StatusInternalServerError, "monitor_form.html", gin.H{
 			"Monitor": updated, "IsNew": false, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
+			"AllDockerHosts": allDockerHosts,
 		})
 		return
 	}

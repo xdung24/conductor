@@ -484,9 +484,21 @@
                 <input class="form-control" type="text" id="docker_container_id" name="docker_container_id"
                        value="{{ .Monitor.DockerContainerID }}" placeholder="e.g. my-nginx or sha256:abc" />
             </div>
-            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
-                Connects to the local Docker socket. Leave URL blank (not used for Docker monitors).
-            </small>
+            <div class="form-group">
+                <label for="docker_host_id">Docker Host</label>
+                <select class="form-control" id="docker_host_id" name="docker_host_id">
+                    <option value="0">Local socket (/var/run/docker.sock)</option>
+                    {{ range .AllDockerHosts }}
+                    <option value="{{ .ID }}" {{ if eq $.Monitor.DockerHostID .ID }}selected{{ end }}>
+                        {{ .Name }}{{ if .SocketPath }} ({{ .SocketPath }}){{ else if .HTTPURL }} ({{ .HTTPURL }}){{ end }}
+                    </option>
+                    {{ end }}
+                </select>
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Select a configured Docker host or use the local socket.
+                    <a href="/docker-hosts" style="color:#38bdf8;">Manage Docker hosts</a>
+                </small>
+            </div>
         </div>
 
         <!-- System Service fields -->

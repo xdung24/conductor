@@ -1,0 +1,155 @@
+{{ define "docker_hosts.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Docker Hosts — Conductor</title>
+    {{ template "styles" . }}
+    <style>
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media(max-width:600px){ .form-row { grid-template-columns:1fr; } }
+    [data-theme="light"] .hint { color: #475569; }
+    .hint { color: #64748b; font-size: 0.775rem; margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+    {{ template "navbar" . }}
+    <div class="container">
+
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">Docker Hosts</h1>
+    <a href="/docker-hosts/new" class="btn btn-primary">+ New Host</a>
+</div>
+
+{{ if .Flash }}
+<div class="alert alert-success" style="margin-bottom:1rem;">{{ .Flash }}</div>
+{{ end }}
+
+{{ if .Error }}
+<div class="alert alert-danger" style="margin-bottom:1rem;">{{ .Error }}</div>
+{{ end }}
+
+{{/* ---- Inline Create form ---- */}}
+{{ if .NewForm }}
+<div class="card" style="margin-bottom:1.5rem; padding:1.5rem;">
+    <h2 style="margin:0 0 1.25rem; font-size:1.1rem;">New Docker Host</h2>
+    <form method="POST" action="/docker-hosts">
+        <div class="form-group">
+            <label for="name">Name <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="text" id="name" name="name"
+                   value="{{ .Host.Name }}" placeholder="e.g. production-server" required />
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="socket_path">Unix Socket Path</label>
+                <input class="form-control" type="text" id="socket_path" name="socket_path"
+                       value="{{ .Host.SocketPath }}"
+                       placeholder="/var/run/docker.sock" />
+                <p class="hint">Leave empty if connecting via HTTP/TCP.</p>
+            </div>
+            <div class="form-group">
+                <label for="http_url">HTTP/TCP URL</label>
+                <input class="form-control" type="text" id="http_url" name="http_url"
+                       value="{{ .Host.HTTPURL }}"
+                       placeholder="http://192.168.1.10:2375" />
+                <p class="hint">Leave empty if using a Unix socket.</p>
+            </div>
+        </div>
+        <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:1rem;">
+            Provide either the socket path <strong>or</strong> an HTTP URL — not both.
+            The socket path takes precedence if both are set.
+        </small>
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary">Create Host</button>
+            <a href="/docker-hosts" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{/* ---- Inline Edit form ---- */}}
+{{ if .EditHost }}
+<div class="card" style="margin-bottom:1.5rem; padding:1.5rem;">
+    <h2 style="margin:0 0 1.25rem; font-size:1.1rem;">Edit Docker Host</h2>
+    <form method="POST" action="/docker-hosts/{{ .EditHost.ID }}">
+        <div class="form-group">
+            <label for="name_edit">Name <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="text" id="name_edit" name="name"
+                   value="{{ .EditHost.Name }}" required />
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="socket_path_edit">Unix Socket Path</label>
+                <input class="form-control" type="text" id="socket_path_edit" name="socket_path"
+                       value="{{ .EditHost.SocketPath }}"
+                       placeholder="/var/run/docker.sock" />
+                <p class="hint">Leave empty if connecting via HTTP/TCP.</p>
+            </div>
+            <div class="form-group">
+                <label for="http_url_edit">HTTP/TCP URL</label>
+                <input class="form-control" type="text" id="http_url_edit" name="http_url"
+                       value="{{ .EditHost.HTTPURL }}"
+                       placeholder="http://192.168.1.10:2375" />
+                <p class="hint">Leave empty if using a Unix socket.</p>
+            </div>
+        </div>
+        <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:1rem;">
+            Provide either the socket path <strong>or</strong> an HTTP URL — not both.
+            The socket path takes precedence if both are set.
+        </small>
+        <div style="display:flex; gap:0.75rem;">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/docker-hosts" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{{ end }}
+
+{{/* ---- Hosts table ---- */}}
+{{ if .Hosts }}
+<div class="card" style="padding:0; overflow:hidden;">
+    <table class="table" style="margin:0;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Socket Path</th>
+                <th>HTTP URL</th>
+                <th style="text-align:center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .Hosts }}
+        <tr>
+            <td style="font-weight:500; color:#e2e8f0;">{{ .Name }}</td>
+            <td style="font-size:0.8125rem; color:#94a3b8; font-family:monospace;">
+                {{ if .SocketPath }}{{ .SocketPath }}{{ else }}<span style="color:#475569;">—</span>{{ end }}
+            </td>
+            <td style="font-size:0.8125rem; color:#94a3b8; font-family:monospace;">
+                {{ if .HTTPURL }}{{ .HTTPURL }}{{ else }}<span style="color:#475569;">—</span>{{ end }}
+            </td>
+            <td style="text-align:center; white-space:nowrap;">
+                <a href="/docker-hosts/{{ .ID }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+                <form method="POST" action="/docker-hosts/{{ .ID }}/delete" style="display:inline;"
+                      onsubmit="return confirm('Delete Docker host &quot;{{ .Name | js }}&quot;?')">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+{{ else if not .NewForm }}
+{{ if not .EditHost }}
+<div class="card" style="text-align:center; padding:2.5rem; color:#64748b;">
+    <p style="font-size:1rem; margin-bottom:1rem;">No Docker hosts configured yet.</p>
+    <a href="/docker-hosts/new" class="btn btn-primary">Add your first Docker host</a>
+</div>
+{{ end }}
+{{ end }}
+
+    </div>
+</body>
+</html>
+{{ end }}

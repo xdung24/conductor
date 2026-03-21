@@ -143,7 +143,7 @@ func (s *Scheduler) Unschedule(id int64) {
 }
 
 func (s *Scheduler) runCheck(m *models.Monitor) {
-	result := monitor.Run(s.ctx, m)
+	result := monitor.Run(s.ctx, s.db, m)
 
 	now := time.Now().UTC()
 

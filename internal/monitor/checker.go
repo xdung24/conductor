@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"fmt"
 	"io"
 	"net"
@@ -28,13 +29,14 @@ type Checker interface {
 }
 
 // DockerHostLookup is an optional callback that resolves a docker_host ID to
-// its (socketPath, httpURL) connection details. Set this at application startup
-// when Docker monitoring is in use.
-var DockerHostLookup func(id int64) (socketPath, httpURL string)
+// its (socketPath, httpURL) connection details. The db parameter is the
+// per-user database that stores the docker_hosts table.
+var DockerHostLookup func(db *sql.DB, id int64) (socketPath, httpURL string)
 
 // Run performs the appropriate check for a monitor (with retry logic).
-func Run(ctx context.Context, m *models.Monitor) Result {
-	checker := checkerFor(m)
+// db is the per-user database used for per-user resource lookups (e.g. docker hosts).
+func Run(ctx context.Context, db *sql.DB, m *models.Monitor) Result {
+	checker := checkerFor(db, m)
 	timeout := time.Duration(m.TimeoutSeconds) * time.Second
 
 	var last Result
@@ -49,7 +51,7 @@ func Run(ctx context.Context, m *models.Monitor) Result {
 	return last
 }
 
-func checkerFor(m *models.Monitor) Checker {
+func checkerFor(db *sql.DB, m *models.Monitor) Checker {
 	switch m.Type {
 	case models.MonitorTypeDNS:
 		return &DNSChecker{}
@@ -77,8 +79,8 @@ func checkerFor(m *models.Monitor) Checker {
 		return &GRPCChecker{}
 	case models.MonitorTypeDocker:
 		dc := &DockerChecker{}
-		if DockerHostLookup != nil && m.DockerHostID > 0 {
-			dc.HostSocketPath, dc.HostHTTPURL = DockerHostLookup(m.DockerHostID)
+		if DockerHostLookup != nil && db != nil && m.DockerHostID > 0 {
+			dc.HostSocketPath, dc.HostHTTPURL = DockerHostLookup(db, m.DockerHostID)
 		}
 		return dc
 	case models.MonitorTypeRabbitMQ:

@@ -199,6 +199,14 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.POST("/maintenance/:id", h.MaintenanceUpdate)
 		auth.POST("/maintenance/:id/delete", h.MaintenanceDelete)
 
+		// Docker Hosts
+		auth.GET("/docker-hosts", h.DockerHostList)
+		auth.GET("/docker-hosts/new", h.DockerHostNew)
+		auth.POST("/docker-hosts", h.DockerHostCreate)
+		auth.GET("/docker-hosts/:id/edit", h.DockerHostEdit)
+		auth.POST("/docker-hosts/:id", h.DockerHostUpdate)
+		auth.POST("/docker-hosts/:id/delete", h.DockerHostDelete)
+
 		// API Keys
 		auth.GET("/api-keys", h.APIKeyList)
 		auth.POST("/api-keys", h.APIKeyCreate)

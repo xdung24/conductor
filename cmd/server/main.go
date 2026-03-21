@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/xdung24/conductor/internal/config"
 	"github.com/xdung24/conductor/internal/database"
 	"github.com/xdung24/conductor/internal/models"
+	"github.com/xdung24/conductor/internal/monitor"
 	"github.com/xdung24/conductor/internal/scheduler"
 	"github.com/xdung24/conductor/internal/web"
 )
@@ -58,6 +60,16 @@ func main() {
 		msched.StartForUser(u.Username, db)
 	}
 	log.Printf("initialized %d user database(s)", len(existingUsers))
+
+	// Set up DockerHostLookup so the DockerChecker can resolve docker_host_id
+	// values to their connection details at check time using the per-user DB.
+	monitor.DockerHostLookup = func(db *sql.DB, id int64) (string, string) {
+		h, err := models.NewDockerHostStore(db).Get(id)
+		if err != nil || h == nil {
+			return "", ""
+		}
+		return h.SocketPath, h.HTTPURL
+	}
 
 	// On first startup (no users) generate a short-lived registration token and
 	// print the setup URL to the console so the operator can create the admin account.

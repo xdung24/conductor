@@ -76,32 +76,32 @@ See `FEATURES.md` for current status of each item.
 
 ---
 
-## Phase 3 — New Monitor Types (A)
+## Phase 3 — New Monitor Types (A) ✅ Complete
 
-### 3.1 WebSocket Upgrade
+### 3.1 WebSocket Upgrade ✅
 - No new DB columns (uses `url` field, `ws://` or `wss://`)
 - Add `MonitorTypeWebSocket` constant
 - `WebSocketChecker`: dial, verify 101 Switching Protocols (use `nhooyr.io/websocket`)
 
-### 3.2 Docker Container Monitor
-- Migration 0015: `docker_hosts(id, name, socket_path, http_url, tls_cert, tls_key, tls_ca)` + add `docker_host_id INT`, `docker_container_id TEXT` to monitors
-- `DockerContainerChecker`: raw HTTP to Docker daemon API; check `State.Running`
-- Handlers: `/docker-hosts/*` CRUD
+### 3.2 Docker Container Monitor ✅
+- Migration 0007: `docker_hosts(id, name, socket_path, http_url)` + add `docker_host_id INT`, `docker_container_id TEXT` to monitors
+- `DockerChecker`: raw HTTP to Docker daemon API; check `State.Running` + optional health check status
+- Handlers: `/docker-hosts/*` CRUD; `DockerHostLookup` callback threads per-user DB to checker at runtime
 
-### 3.3 Microsoft SQL Server
+### 3.3 Microsoft SQL Server ✅
 - No new DB columns (reuses `url` + `db_query`)
 - Dependency: `github.com/microsoft/go-mssqldb`
 - `MSSQLChecker` in `checker_db.go` — same pattern as MySQL/Postgres
 
-### 3.4 MQTT
-- Migration 0016: add `mqtt_topic TEXT`, `mqtt_username TEXT`, `mqtt_password TEXT`
+### 3.4 MQTT ✅
+- Migration 0008: add `mqtt_topic TEXT`, `mqtt_username TEXT`, `mqtt_password TEXT`
 - Dependency: `github.com/eclipse/paho.mqtt.golang`
-- `MQTTChecker`: connect, subscribe, wait for message within timeout
+- `MQTTChecker`: connect, subscribe, wait for message within timeout; optional keyword assertion
 
-### 3.5 gRPC Keyword
-- Migration 0017: add `grpc_proto_file TEXT` (optional)
+### 3.5 gRPC Keyword ✅
+- Migration 0009: add `grpc_protobuf TEXT`, `grpc_service_name TEXT`, `grpc_method TEXT`, `grpc_body TEXT`, `grpc_enable_tls INT`
 - Dependency: `google.golang.org/grpc`
-- `GRPCChecker`: gRPC health check protocol + optional keyword match in response
+- `GRPCChecker`: standard `grpc.health.v1.Health/Check`; optional keyword assertion on status string; TLS support
 
 ---
 
