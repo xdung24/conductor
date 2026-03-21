@@ -40,7 +40,10 @@ jobs:
         include:
           - goos: windows
             goarch: amd64
-            output: conductor-windows-x64.exe
+            output: conductor-x64.exe
+          - goos: windows
+            goarch: arm64
+            output: conductor-arm64.exe
           - goos: linux
             goarch: amd64
             output: conductor-linux-x64
@@ -97,7 +100,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./artifacts/conductor-windows-x64.exe
+            ./artifacts/conductor-x64.exe
+            ./artifacts/conductor-arm64.exe
             ./artifacts/conductor-linux-x64
             ./artifacts/conductor-linux-arm64
           draft: false
