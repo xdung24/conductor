@@ -61,9 +61,9 @@ func validateEmail(s string) (canonical string, err error) {
 	if strings.Contains(local, "..") {
 		return "", fmt.Errorf("email address local part must not contain '..'")
 	}
-	for _, ch := range local {
-		if !isLocalChar(byte(ch)) {
-			return "", fmt.Errorf("email address local part contains invalid character '%c'", ch)
+	for i := 0; i < len(local); i++ {
+		if !isLocalChar(local[i]) {
+			return "", fmt.Errorf("email address local part contains invalid character %q", local[i])
 		}
 	}
 
@@ -77,9 +77,9 @@ func validateEmail(s string) (canonical string, err error) {
 	if domain[0] == '.' || domain[0] == '-' || domain[len(domain)-1] == '.' || domain[len(domain)-1] == '-' {
 		return "", fmt.Errorf("email address domain must not start or end with '.' or '-'")
 	}
-	for _, ch := range domain {
-		if !isDomainChar(byte(ch)) {
-			return "", fmt.Errorf("email address domain contains invalid character '%c'", ch)
+	for i := 0; i < len(domain); i++ {
+		if !isDomainChar(domain[i]) {
+			return "", fmt.Errorf("email address domain contains invalid character %q", domain[i])
 		}
 	}
 

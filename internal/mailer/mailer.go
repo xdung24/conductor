@@ -105,19 +105,19 @@ func (m *Mailer) send(to, subject, htmlBody string) error {
 		}
 		defer c.Close()                           //nolint:errcheck
 		tlsCfg := &tls.Config{ServerName: m.host} //nolint:gosec // user-configured host
-		if err := c.StartTLS(tlsCfg); err != nil {
+		if err = c.StartTLS(tlsCfg); err != nil {
 			return fmt.Errorf("starttls: %w", err)
 		}
 		if auth != nil {
-			if err := c.Auth(auth); err != nil {
+			if err = c.Auth(auth); err != nil {
 				return fmt.Errorf("smtp auth: %w", err)
 			}
 		}
-		if err := c.Mail(m.from); err != nil {
+		if err = c.Mail(m.from); err != nil {
 			return fmt.Errorf("smtp MAIL FROM: %w", err)
 		}
 		for _, r := range rcpts {
-			if err := c.Rcpt(r); err != nil {
+			if err = c.Rcpt(r); err != nil {
 				return fmt.Errorf("smtp RCPT TO %s: %w", r, err)
 			}
 		}
@@ -125,7 +125,7 @@ func (m *Mailer) send(to, subject, htmlBody string) error {
 		if err != nil {
 			return fmt.Errorf("smtp DATA: %w", err)
 		}
-		if _, err := w.Write(msgBytes); err != nil {
+		if _, err = w.Write(msgBytes); err != nil {
 			return fmt.Errorf("smtp write: %w", err)
 		}
 		return w.Close()

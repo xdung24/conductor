@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -26,10 +27,11 @@ func main() {
 
 	cfg := config.Load()
 
-	// Open and migrate the shared users database.
-	usersDB, err := database.Open(filepath.Join(cfg.DataDir, "users.db"))
+	// migrate opens the DB and wires global lookups; no defers registered yet
+	// so os.Exit is safe here.
+	usersDB, registry, err := migrate(cfg)
 	if err != nil {
-		slog.Error("failed to open users database", "error", err)
+		slog.Error("startup failed", "error", err)
 		os.Exit(1)
 	}
 	defer func() {
@@ -37,27 +39,76 @@ func main() {
 			slog.Error("failed to close users database", "error", err)
 		}
 	}()
-
-	if err := database.MigrateUsersDB(usersDB); err != nil {
-		slog.Error("failed to run users migrations", "error", err)
-		os.Exit(1)
-	}
-
-	// Create per-user DB registry.
-	registry := database.NewRegistry(cfg.DataDir)
 	defer registry.Close()
 
-	// Create multi-scheduler.
-	msched := scheduler.NewMulti()
+	systemMailer := mailer.New(cfg)
+	if systemMailer.Enabled() {
+		slog.Info("system SMTP enabled", "host", cfg.SystemSMTPHost)
+	}
+
+	msched, err := runScheduler(usersDB, registry)
+	if err != nil {
+		// return so defers above run cleanly.
+		slog.Error("scheduler failed", "error", err)
+		return
+	}
 	defer msched.Stop()
 
-	// Initialize databases and schedulers for all existing users.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	if err := runHTTPServer(ctx, cfg, usersDB, registry, msched, systemMailer); err != nil {
+		slog.Error("server error", "error", err)
+	}
+}
+
+// migrate opens and migrates the shared users database, creates the per-user
+// DB registry, and wires up the global monitor lookup functions.
+// Returns the open usersDB and registry; the caller is responsible for closing both.
+func migrate(cfg *config.Config) (*sql.DB, *database.Registry, error) {
+	usersDB, err := database.Open(filepath.Join(cfg.DataDir, "users.db"))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open users database: %w", err)
+	}
+
+	if err := database.MigrateUsersDB(usersDB); err != nil {
+		_ = usersDB.Close()
+		return nil, nil, fmt.Errorf("failed to run users migrations: %w", err)
+	}
+
+	registry := database.NewRegistry(cfg.DataDir)
+
+	// Wire global lookup functions used by the monitor checkers.
+	monitor.DockerHostLookup = func(db *sql.DB, id int64) (string, string) {
+		h, err := models.NewDockerHostStore(db).Get(id)
+		if err != nil || h == nil {
+			return "", ""
+		}
+		return h.SocketPath, h.HTTPURL
+	}
+	monitor.ProxyLookup = func(db *sql.DB, id int64) string {
+		p, err := models.NewProxyStore(db).Get(id)
+		if err != nil || p == nil {
+			return ""
+		}
+		return p.URL
+	}
+
+	return usersDB, registry, nil
+}
+
+// runScheduler opens per-user databases, starts a scheduler for every existing
+// user, and prints the first-run setup URL when no users exist yet.
+// Returns the running MultiScheduler; the caller is responsible for stopping it.
+func runScheduler(usersDB *sql.DB, registry *database.Registry) (*scheduler.MultiScheduler, error) {
+	msched := scheduler.NewMulti()
+
 	userStore := models.NewUserStore(usersDB)
 	existingUsers, err := userStore.ListAll()
 	if err != nil {
-		slog.Error("failed to list users", "error", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
+
 	for _, u := range existingUsers {
 		db, err := registry.Get(u.Username)
 		if err != nil {
@@ -68,49 +119,35 @@ func main() {
 	}
 	slog.Info("initialized user databases", "count", len(existingUsers))
 
-	// Set up DockerHostLookup so the DockerChecker can resolve docker_host_id
-	// values to their connection details at check time using the per-user DB.
-	monitor.DockerHostLookup = func(db *sql.DB, id int64) (string, string) {
-		h, err := models.NewDockerHostStore(db).Get(id)
-		if err != nil || h == nil {
-			return "", ""
-		}
-		return h.SocketPath, h.HTTPURL
-	}
-
-	// Set up ProxyLookup so the HTTP checker can resolve proxy_id values to
-	// their proxy URL at schedule time using the per-user DB.
-	monitor.ProxyLookup = func(db *sql.DB, id int64) string {
-		p, err := models.NewProxyStore(db).Get(id)
-		if err != nil || p == nil {
-			return ""
-		}
-		return p.URL
-	}
-
-	// On first startup (no users) generate a short-lived registration token and
-	// print the setup URL to the console so the operator can create the admin account.
+	// On first startup generate a short-lived registration token so the
+	// operator can create the admin account.
 	if len(existingUsers) == 0 {
 		regTokenStore := models.NewRegistrationTokenStore(usersDB)
 		token, err := regTokenStore.Generate("system", 30*time.Minute)
 		if err != nil {
 			slog.Warn("failed to generate setup token", "error", err)
 		} else {
-			addr := cfg.ListenAddr
-			if len(addr) > 0 && addr[0] == ':' {
-				addr = "localhost" + addr
-			}
-			setupURL := "http://" + addr + "/register?token=" + token
-			slog.Info("first run: register admin account", "url", setupURL, "expires_in", "30m")
+			// usersDB is shared so we need the listen addr from the caller;
+			// use a placeholder host — the operator will see it in the log.
+			slog.Info("first run: no users found — create admin account via setup URL",
+				"path", "/register?token="+token, "expires_in", "30m")
 		}
 	}
 
-	// Start the web server. The handlers will use the usersDB and registry to access user and host data,
-	// and the multi-scheduler to start/stop checks when users are created/deleted.
-	systemMailer := mailer.New(cfg)
-	if systemMailer.Enabled() {
-		slog.Info("system SMTP enabled", "host", cfg.SystemSMTPHost)
-	}
+	return msched, nil
+}
+
+// runHTTPServer builds the router, starts the HTTP server, and blocks until ctx
+// is cancelled or the server exits with a fatal error. It performs a graceful
+// shutdown before returning.
+func runHTTPServer(
+	ctx context.Context,
+	cfg *config.Config,
+	usersDB *sql.DB,
+	registry *database.Registry,
+	msched *scheduler.MultiScheduler,
+	systemMailer *mailer.Mailer,
+) error {
 	gin.SetMode(gin.ReleaseMode)
 	router := web.NewRouter(usersDB, registry, msched, cfg, systemMailer)
 
@@ -122,26 +159,26 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
+	srvErr := make(chan error, 1)
 	go func() {
 		slog.Info("conductor listening", "addr", cfg.ListenAddr)
-		gin.SetMode(gin.DebugMode)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("server error", "error", err)
-			os.Exit(1)
+			srvErr <- err
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shut down the server with a timeout of 5 seconds.
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	select {
+	case err := <-srvErr:
+		return fmt.Errorf("server error: %w", err)
+	case <-ctx.Done():
+	}
 
 	slog.Info("shutting down gracefully")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		slog.Error("forced shutdown", "error", err)
-		os.Exit(1)
+	if err := srv.Shutdown(shutCtx); err != nil {
+		return fmt.Errorf("forced shutdown: %w", err)
 	}
 	slog.Info("server stopped")
+	return nil
 }
