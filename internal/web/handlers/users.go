@@ -2,20 +2,41 @@ package handlers
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xdung24/conductor/internal/mailer"
+	"github.com/xdung24/conductor/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserList renders the user management page.
+func (h *Handler) pwResetStore() *models.PasswordResetTokenStore {
+	return models.NewPasswordResetTokenStore(h.usersDB)
+}
+
+const userPageSize = 10
+
+// UserList renders the user management page with search + pagination.
 func (h *Handler) UserList(c *gin.Context) {
-	users, err := h.users.ListAll()
+	q := c.Query("q")
+	page, _ := strconv.Atoi(c.Query("page"))
+	if page < 1 {
+		page = 1
+	}
+
+	users, total, err := h.users.ListPaged(q, page, userPageSize)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"Error": err.Error()})
 		return
 	}
+	totalPages := int(math.Ceil(float64(total) / float64(userPageSize)))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
 	inviteTokens, _ := h.regTokenStore().ListAll()
 	c.HTML(http.StatusOK, "users.html", gin.H{
 		"Users":               users,
@@ -25,6 +46,10 @@ func (h *Handler) UserList(c *gin.Context) {
 		"FlashError":          c.Query("error"),
 		"InviteTokens":        inviteTokens,
 		"RegistrationEnabled": h.settingsStore().RegistrationEnabled(),
+		"Q":                   q,
+		"Page":                page,
+		"TotalPages":          totalPages,
+		"Total":               total,
 	})
 }
 
@@ -52,9 +77,15 @@ func (h *Handler) UserCreate(c *gin.Context) {
 	}
 
 	if username == "" || password == "" {
-		renderErr("Username and password are required")
+		renderErr("Email and password are required")
 		return
 	}
+	canonical, emailErr := validateEmail(username)
+	if emailErr != nil {
+		renderErr(emailErr.Error())
+		return
+	}
+	username = canonical
 	if len(password) < 8 {
 		renderErr("Password must be at least 8 characters")
 		return
@@ -153,41 +184,25 @@ func (h *Handler) UserChangePassword(c *gin.Context) {
 		return
 	}
 
+	h.mailer.SendAsync(target, "Your password has been changed", mailer.RenderPasswordChangedByAdmin())
 	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Password updated for "+target))
-}
-
-// UserDelete removes a user and cleans up their scheduler and DB connection.
-func (h *Handler) UserDelete(c *gin.Context) {
-	target := c.Param("username")
-	current := h.username(c)
-
-	if target == current {
-		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Cannot delete your own account"))
-		return
-	}
-
-	count, _ := h.users.Count()
-	if count <= 1 {
-		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Cannot delete the last user"))
-		return
-	}
-
-	// Unregister push tokens, stop scheduler, close DB — then delete the record.
-	_ = h.users.UnregisterAllPushTokens(target)
-	h.msched.StopUser(target)
-	h.registry.Remove(target)
-
-	if err := h.users.Delete(target); err != nil {
-		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to delete user: "+err.Error()))
-		return
-	}
-
-	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("User "+target+" deleted"))
 }
 
 // InviteGenerate creates a single-use registration token and redirects to the
 // users page with the full invite URL shown as a flash message.
+// The recipient email is mandatory — it is used address the email (when the
+// mailer is configured) and displayed in the flash for copy-paste fallback.
 func (h *Handler) InviteGenerate(c *gin.Context) {
+	recipientEmail := c.PostForm("recipient_email")
+	if recipientEmail == "" {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Recipient email is required"))
+		return
+	}
+	if _, err := validateEmail(recipientEmail); err != nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Invalid recipient email: "+err.Error()))
+		return
+	}
+
 	token, err := h.regTokenStore().Generate(h.username(c), 0) // 0 = no expiry for admin invites
 	if err != nil {
 		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to generate invite: "+err.Error()))
@@ -199,7 +214,11 @@ func (h *Handler) InviteGenerate(c *gin.Context) {
 		scheme = "https"
 	}
 	inviteURL := fmt.Sprintf("%s://%s/register?token=%s", scheme, c.Request.Host, token)
-	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Invite link: "+inviteURL))
+
+	// Send invite email (fire-and-forget, no-op when SMTP is unconfigured).
+	h.mailer.SendAsync(recipientEmail, "You've been invited to Conductor", mailer.RenderInvite(inviteURL))
+
+	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Invite link for "+recipientEmail+" (copy and send manually): "+inviteURL))
 }
 
 // InviteRevoke deletes an invite token.
@@ -209,13 +228,43 @@ func (h *Handler) InviteRevoke(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Invite revoked"))
 }
 
-// UserSetAdmin grants or revokes admin privileges for a user.
-func (h *Handler) UserSetAdmin(c *gin.Context) {
+// UserGenerateResetLink creates a 30-minute password-reset token and redirects
+// to the admin users page with the full reset URL in the flash message.
+func (h *Handler) UserGenerateResetLink(c *gin.Context) {
+	target := c.Param("username")
+	u, _ := h.users.GetByUsername(target)
+	if u == nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("User not found"))
+		return
+	}
+
+	token, err := h.pwResetStore().Generate(target)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to generate reset link: "+err.Error()))
+		return
+	}
+
+	scheme := "http"
+	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	resetURL := fmt.Sprintf("%s://%s/reset-password?token=%s", scheme, c.Request.Host, token)
+
+	// Send password-reset email (fire-and-forget).
+	h.mailer.SendAsync(target, "Reset your Conductor password", mailer.RenderPasswordReset(resetURL))
+
+	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("Password reset link for "+target+" (valid 30 min): "+resetURL))
+}
+
+// UserToggleDisabled enables or disables a user account.
+// A disabled account is immediately locked out of all sessions and its monitor
+// scheduler is stopped. Re-enabling restarts the scheduler.
+func (h *Handler) UserToggleDisabled(c *gin.Context) {
 	target := c.Param("username")
 	current := h.username(c)
 
 	if target == current {
-		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Cannot change your own admin role"))
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Cannot disable your own account"))
 		return
 	}
 
@@ -225,18 +274,142 @@ func (h *Handler) UserSetAdmin(c *gin.Context) {
 		return
 	}
 
-	// Toggle: if currently admin, revoke; otherwise grant.
-	grant := !u.IsAdmin
-	if err := h.users.SetAdmin(target, grant); err != nil {
-		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to update role: "+err.Error()))
+	// Prevent disabling the last admin.
+	if u.IsAdmin && !u.Disabled {
+		adminCount, err := h.users.CountAdmins()
+		if err == nil && adminCount <= 1 {
+			c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Cannot disable the last admin account"))
+			return
+		}
+	}
+
+	nowDisabled := !u.Disabled
+	if err := h.users.SetDisabled(target, nowDisabled); err != nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to update account: "+err.Error()))
 		return
 	}
 
-	var msg string
-	if grant {
-		msg = target + " is now an admin"
+	if nowDisabled {
+		// Stop all background monitor jobs for the disabled user.
+		h.msched.StopUser(target)
 	} else {
-		msg = target + " is no longer an admin"
+		// Restart the scheduler when re-enabling.
+		db, err := h.registry.Get(target)
+		if err == nil {
+			h.msched.StartForUser(target, db)
+		}
+	}
+
+	var msg string
+	if nowDisabled {
+		msg = target + " has been disabled"
+		h.mailer.SendAsync(target, "Your Conductor account has been disabled", mailer.RenderAccountDisabled())
+	} else {
+		msg = target + " has been enabled"
+		h.mailer.SendAsync(target, "Your Conductor account has been re-enabled", mailer.RenderAccountEnabled())
 	}
 	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape(msg))
+}
+
+// ResetPasswordPage renders the public password-reset form.
+// Access is granted only with a valid, unexpired, unused token.
+func (h *Handler) ResetPasswordPage(c *gin.Context) {
+	token := c.Query("token")
+	rt, err := h.pwResetStore().GetValid(token)
+	if err != nil || rt == nil {
+		c.HTML(http.StatusOK, "reset_password.html", gin.H{
+			"Invalid": true,
+			"Error":   "",
+		})
+		return
+	}
+	c.HTML(http.StatusOK, "reset_password.html", gin.H{
+		"Invalid":  false,
+		"Token":    token,
+		"Username": rt.Username,
+		"Error":    "",
+	})
+}
+
+// ResetPasswordSubmit handles the password-reset form submission.
+func (h *Handler) ResetPasswordSubmit(c *gin.Context) {
+	token := c.PostForm("token")
+	password := c.PostForm("password")
+	confirm := c.PostForm("confirm_password")
+
+	renderErr := func(msg string) {
+		c.HTML(http.StatusBadRequest, "reset_password.html", gin.H{
+			"Invalid": false,
+			"Token":   token,
+			"Error":   msg,
+		})
+	}
+
+	rt, err := h.pwResetStore().GetValid(token)
+	if err != nil || rt == nil {
+		c.HTML(http.StatusOK, "reset_password.html", gin.H{"Invalid": true, "Error": ""})
+		return
+	}
+
+	if password == "" {
+		renderErr("Password is required")
+		return
+	}
+	if len(password) < 8 {
+		renderErr("Password must be at least 8 characters")
+		return
+	}
+	if password != confirm {
+		renderErr("Passwords do not match")
+		return
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		renderErr("Internal error")
+		return
+	}
+
+	if err := h.users.UpdatePassword(rt.Username, string(hashed)); err != nil {
+		renderErr("Failed to update password: " + err.Error())
+		return
+	}
+
+	// Consume the token so it cannot be reused.
+	_ = h.pwResetStore().Consume(token)
+
+	// Notify the user that their password was changed via the reset link.
+	h.mailer.SendAsync(rt.Username, "Your password has been changed", mailer.RenderPasswordChangedByReset())
+
+	c.HTML(http.StatusOK, "reset_password.html", gin.H{
+		"Invalid": false,
+		"Done":    true,
+		"Error":   "",
+	})
+}
+
+// UserRemove2FA clears the TOTP secret for a user (lost-device recovery).
+// Only admins can call this; they cannot remove their own 2FA via this endpoint.
+func (h *Handler) UserRemove2FA(c *gin.Context) {
+	target := c.Param("username")
+	current := h.username(c)
+
+	if target == current {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Use /account/2fa to manage your own 2FA"))
+		return
+	}
+
+	u, _ := h.users.GetByUsername(target)
+	if u == nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("User not found"))
+		return
+	}
+
+	if err := h.users.DisableTOTP(target); err != nil {
+		c.Redirect(http.StatusFound, "/admin/users?error="+url.QueryEscape("Failed to remove 2FA: "+err.Error()))
+		return
+	}
+
+	h.mailer.SendAsync(target, "Two-factor authentication removed", mailer.RenderTwoFARemoved())
+	c.Redirect(http.StatusFound, "/admin/users?flash="+url.QueryEscape("2FA removed for "+target))
 }

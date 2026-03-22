@@ -6,6 +6,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Settings — Conductor</title>
     {{ template "styles" . }}
+    <style>
+        .settings-section-title {
+            font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem;
+            color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        [data-theme="light"] .settings-section-title { color: #64748b; }
+
+        .smtp-badge {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.25rem 0.75rem; border-radius: 9999px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+        .smtp-badge-ok   { background: #14532d; color: #86efac; }
+        .smtp-badge-warn { background: #78350f; color: #fde68a; }
+        [data-theme="light"] .smtp-badge-ok   { background: #dcfce7; color: #166534; }
+        [data-theme="light"] .smtp-badge-warn { background: #fef3c7; color: #92400e; }
+
+        .smtp-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; }
+        .smtp-dot-ok   { background: #4ade80; }
+        .smtp-dot-warn { background: #facc15; }
+
+        .warn-banner {
+            background: #78350f; color: #fde68a;
+            border: 1px solid #d97706;
+            border-radius: 0.5rem; padding: 0.9rem 1.1rem;
+            margin-bottom: 1.25rem; font-size: 0.9rem;
+        }
+        [data-theme="light"] .warn-banner {
+            background: #fffbeb; color: #78350f;
+            border-color: #f59e0b;
+        }
+        .warn-banner strong { display: block; margin-bottom: 0.4rem; }
+        .warn-banner code {
+            background: rgba(0,0,0,0.2); border-radius: 0.25rem;
+            padding: 0.1rem 0.35rem; font-size: 0.82rem;
+        }
+        [data-theme="light"] .warn-banner code { background: rgba(0,0,0,0.07); }
+    </style>
 </head>
 <body>
     {{ template "navbar" . }}
@@ -19,10 +57,56 @@
         <div class="alert alert-danger">&#10007; {{ .Error }}</div>
         {{ end }}
 
+        {{/* Non-email username advisory banner */}}
+        {{ if .NonEmailUsers }}
+        <div class="warn-banner">
+            <strong>&#9888; Non-email usernames detected</strong>
+            The following accounts have usernames that are not valid email addresses.
+            They can still log in, but will not receive transactional emails and cannot
+            be used with the invite / password-reset flows that require an email address.
+            Consider renaming them to proper email addresses:
+            <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+                {{ range .NonEmailUsers }}
+                <li><code>{{ . }}</code></li>
+                {{ end }}
+            </ul>
+        </div>
+        {{ end }}
+
+        {{/* System SMTP status card */}}
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h2 class="settings-section-title">System Email (SMTP)</h2>
+            <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                {{ if .SMTPEnabled }}
+                <span class="smtp-badge smtp-badge-ok">
+                    <span class="smtp-dot smtp-dot-ok"></span>Configured
+                </span>
+                <span style="font-size:0.88rem; color:#94a3b8;">
+                    Host: <strong style="color:#e2e8f0;">{{ .SMTPHost }}</strong>
+                </span>
+                {{ else }}
+                <span class="smtp-badge smtp-badge-warn">
+                    <span class="smtp-dot smtp-dot-warn"></span>Not configured
+                </span>
+                <span style="font-size:0.88rem; color:#94a3b8;">
+                    Set the <code style="font-size:0.82rem; background:rgba(0,0,0,0.3);
+                    border-radius:0.25rem; padding:0.1rem 0.35rem;">SYSTEM_SMTP_HOST</code>
+                    environment variable to enable transactional emails (invites, password
+                    resets, account notifications).
+                </span>
+                {{ end }}
+            </div>
+            {{ if .SMTPEnabled }}
+            <p style="margin-top:0.75rem; font-size:0.82rem; color:#64748b;">
+                Transactional emails are sent for: account invites, password resets,
+                account enable/disable, 2FA enable/remove, and password changes.
+            </p>
+            {{ end }}
+        </div>
+
         <form method="POST" action="/admin/settings">
             <div class="card">
-                <h2 style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; color:#94a3b8;
-                            text-transform:uppercase; letter-spacing:0.05em;">Account Registration</h2>
+                <h2 class="settings-section-title">Account Registration</h2>
 
                 <div style="display:flex; align-items:flex-start; gap:1rem; margin-bottom:1.5rem;">
                     <div style="flex:1;">

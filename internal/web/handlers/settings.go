@@ -30,10 +30,24 @@ func (h *Handler) SettingsPage(c *gin.Context) {
 	if flash != "" {
 		c.SetCookie("sm_flash", "", -1, "/", "", false, true)
 	}
+
+	// Collect usernames that don't look like valid email addresses
+	// (advisory only — login is never blocked for these accounts).
+	allUsers, _ := h.users.ListAll()
+	var nonEmailUsers []string
+	for _, u := range allUsers {
+		if _, err := validateEmail(u.Username); err != nil {
+			nonEmailUsers = append(nonEmailUsers, u.Username)
+		}
+	}
+
 	c.HTML(http.StatusOK, "admin_settings.html", h.pageData(c, gin.H{
 		"Flash":               flash,
 		"Error":               "",
 		"RegistrationEnabled": h.settingsStore().RegistrationEnabled(),
+		"SMTPEnabled":         h.mailer.Enabled(),
+		"SMTPHost":            h.cfg.SystemSMTPHost,
+		"NonEmailUsers":       nonEmailUsers,
 	}))
 }
 

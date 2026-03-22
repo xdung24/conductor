@@ -3,7 +3,7 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 )
 
 // Event holds the data passed to every notification provider when a monitor
@@ -111,7 +111,7 @@ func SendAll(ctx context.Context, notifs []NotifConfig, e Event) []SendResult {
 			r.Err = p.Send(ctx, n.Config, e)
 		}
 		if r.Err != nil {
-			log.Printf("notifier[%s]: send error for monitor %d: %v", n.Type, e.MonitorID, r.Err)
+			slog.Error("notifier send error", "type", n.Type, "monitor_id", e.MonitorID, "error", r.Err)
 		}
 		results = append(results, r)
 	}
