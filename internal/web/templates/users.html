@@ -14,9 +14,6 @@
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
     <h1 class="page-title" style="margin-bottom:0;">Users</h1>
     <div style="display:flex; gap:0.5rem;">
-        <form method="POST" action="/admin/users/invite" style="display:inline; margin:0;">
-            <button type="submit" class="btn btn-ghost btn-sm">&#128279; Generate Invite Link</button>
-        </form>
         <a href="/admin/users/new" class="btn btn-primary">+ Add User</a>
     </div>
 </div>
@@ -34,10 +31,25 @@
 </div>
 {{ end }}
 
+{{/* Invite-link generation */}}
+<div class="card" style="margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h2 style="font-size:1rem; font-weight:600; margin:0; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Generate Invite Link</h2>
+    </div>
+    <form method="POST" action="/admin/users/invite" style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:220px; margin-bottom:0;">
+            <label for="recipient_email" style="font-size:0.85rem; margin-bottom:0.3rem; display:block;">Recipient Email <span style="color:#f87171;">*</span></label>
+            <input class="form-control" type="email" id="recipient_email" name="recipient_email"
+                   placeholder="user@example.com" required />
+        </div>
+        <button type="submit" class="btn btn-ghost btn-sm" style="white-space:nowrap; margin-bottom:0.25rem;">&#128279; Generate Invite</button>
+    </form>
+</div>
+
 {{ if .InviteTokens }}
 <div class="card" style="margin-bottom:1.5rem;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
-        <h2 style="font-size:1rem; font-weight:600; margin:0; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Invite Links</h2>
+        <h2 style="font-size:1rem; font-weight:600; margin:0; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Pending Invite Links</h2>
     </div>
     <table>
         <thead>
@@ -78,12 +90,21 @@
 </div>
 {{ end }}
 
+{{/* Search bar */}}
+<form method="GET" action="/admin/users" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+    <input class="form-control" type="text" name="q" value="{{ .Q }}"
+           placeholder="Search by email…" style="max-width:300px;" />
+    <button type="submit" class="btn btn-ghost btn-sm">Search</button>
+    {{ if .Q }}<a href="/admin/users" class="btn btn-ghost btn-sm">Clear</a>{{ end }}
+</form>
+
 <div class="card" style="padding:0;">
 <table>
     <thead>
         <tr>
-            <th>Username</th>
+            <th>Email</th>
             <th>Role</th>
+            <th>2FA</th>
             <th>Created</th>
             <th>Actions</th>
         </tr>
@@ -96,12 +117,26 @@
             {{ if eq .Username $.CurrentUser }}
                 <span class="badge badge-up" style="margin-left:0.5rem; font-size:0.7rem;">you</span>
             {{ end }}
+            {{ if .Disabled }}
+                <span class="badge badge-down" style="margin-left:0.5rem; font-size:0.7rem;">disabled</span>
+            {{ end }}
         </td>
         <td>
             {{ if .IsAdmin }}
             <span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa;">Admin</span>
             {{ else }}
             <span class="badge badge-unknown">User</span>
+            {{ end }}
+        </td>
+        <td>
+            {{ if .TOTPEnabled }}
+            <form method="POST" action="/admin/users/{{ .Username }}/remove-2fa"
+                  onsubmit="return confirm('Remove 2FA for {{ .Username }}? They will need to re-enrol their authenticator app.')"
+                  style="display:inline;">
+                <button class="btn btn-warning btn-sm" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Remove 2FA</button>
+            </form>
+            {{ else }}
+            <span style="color:#64748b; font-size:0.8rem;">2FA Not Set</span>
             {{ end }}
         </td>
         <td style="color:#94a3b8; font-size:0.875rem;">{{ .CreatedAt.Format "2006-01-02 15:04" }}</td>
@@ -111,18 +146,19 @@
                    class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
                     Change Password
                 </a>
-                {{ if ne .Username $.CurrentUser }}
-                <form method="POST" action="/admin/users/{{ .Username }}/role"
-                      onsubmit="return confirm('{{ if .IsAdmin }}Revoke admin from {{ .Username }}?{{ else }}Grant admin to {{ .Username }}?{{ end }}')"
+                <form method="POST" action="/admin/users/{{ .Username }}/reset-link"
                       style="display:inline;">
-                    <button class="btn {{ if .IsAdmin }}btn-warning{{ else }}btn-success{{ end }}" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
-                        {{ if .IsAdmin }}Revoke Admin{{ else }}Make Admin{{ end }}
+                    <button class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
+                        &#128279; Reset Password Link
                     </button>
                 </form>
-                <form method="POST" action="/admin/users/{{ .Username }}/delete"
-                      onsubmit="return confirm('Delete user {{ .Username }}? This cannot be undone.')"
+                {{ if ne .Username $.CurrentUser }}
+                <form method="POST" action="/admin/users/{{ .Username }}/toggle-disabled"
+                      onsubmit="return confirm('{{ if .Disabled }}Enable account {{ .Username }}?{{ else }}Disable account {{ .Username }}? This will stop their monitors and invalidate all their sessions.{{ end }}')"
                       style="display:inline;">
-                    <button class="btn btn-danger" style="padding:0.3rem 0.6rem; font-size:0.8rem;">Delete</button>
+                    <button class="btn {{ if .Disabled }}btn-success{{ else }}btn-warning{{ end }}" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
+                        {{ if .Disabled }}Enable{{ else }}Disable{{ end }}
+                    </button>
                 </form>
                 {{ end }}
             </div>
@@ -132,6 +168,19 @@
     </tbody>
 </table>
 </div>
+
+{{/* Pagination */}}
+{{ if gt .TotalPages 1 }}
+<div style="display:flex; align-items:center; gap:0.75rem; margin-top:1rem; font-size:0.875rem;">
+    {{ if gt .Page 1 }}
+    <a href="/admin/users?q={{ .Q }}&page={{ add .Page -1 }}" class="btn btn-ghost btn-sm">← Previous</a>
+    {{ end }}
+    <span style="color:#94a3b8;">Page {{ .Page }} of {{ .TotalPages }} ({{ .Total }} users)</span>
+    {{ if lt .Page .TotalPages }}
+    <a href="/admin/users?q={{ .Q }}&page={{ add .Page 1 }}" class="btn btn-ghost btn-sm">Next →</a>
+    {{ end }}
+</div>
+{{ end }}
 
     </div>
 </body>

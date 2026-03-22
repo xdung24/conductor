@@ -56,13 +56,15 @@ func (h *Handler) RegisterSubmit(c *gin.Context) {
 	}
 
 	if username == "" || password == "" {
-		renderErr("Username and password are required.")
+		renderErr("Email and password are required.")
 		return
 	}
-	if len(username) < 3 || len(username) > 32 {
-		renderErr("Username must be between 3 and 32 characters.")
+	canonical, emailErr := validateEmail(username)
+	if emailErr != nil {
+		renderErr(emailErr.Error())
 		return
 	}
+	username = canonical
 	if len(password) < 8 {
 		renderErr("Password must be at least 8 characters.")
 		return

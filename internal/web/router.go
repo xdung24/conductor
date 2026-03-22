@@ -2,6 +2,7 @@ package web
 
 import (
 	"database/sql"
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/xdung24/conductor/internal/config"
 	"github.com/xdung24/conductor/internal/database"
+	"github.com/xdung24/conductor/internal/mailer"
 	"github.com/xdung24/conductor/internal/scheduler"
 	"github.com/xdung24/conductor/internal/web/handlers"
 )
@@ -110,8 +112,24 @@ func mustParseTemplates() *template.Template {
 }
 
 // NewRouter builds and returns the Gin router.
-func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.MultiScheduler, cfg *config.Config) http.Handler {
-	r := gin.Default()
+func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.MultiScheduler, cfg *config.Config, m *mailer.Mailer) http.Handler {
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		entry := map[string]any{
+			"time":       param.TimeStamp.UTC().Format(time.RFC3339),
+			"status":     param.StatusCode,
+			"latency_ms": float64(param.Latency.Microseconds()) / 1000.0,
+			"client_ip":  param.ClientIP,
+			"method":     param.Method,
+			"path":       param.Path,
+		}
+		if param.ErrorMessage != "" {
+			entry["error"] = param.ErrorMessage
+		}
+		b, _ := json.Marshal(entry)
+		return string(b) + "\n"
+	}))
 
 	// Templates are embedded in the binary at compile time; any parse error
 	// crashes the process immediately at startup.
@@ -133,7 +151,7 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		c.Status(http.StatusNotFound)
 	})
 
-	h := handlers.New(usersDB, registry, msched, cfg, tmpl)
+	h := handlers.New(usersDB, registry, msched, cfg, tmpl, m)
 
 	// Rate limiters for authentication endpoints.
 	// 10 attempts / minute per IP on login; 5 / minute on registration.
@@ -167,6 +185,10 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 	// Self-registration (open or invite-token gated)
 	r.GET("/register", h.RegisterPage)
 	r.POST("/register", registerRL, h.RegisterSubmit)
+
+	// Password reset (token-gated, admin-generated link)
+	r.GET("/reset-password", h.ResetPasswordPage)
+	r.POST("/reset-password", h.ResetPasswordSubmit)
 
 	// Push endpoint (unauthenticated — external services call this to signal UP).
 	r.GET("/push/:token", h.MonitorPush)
@@ -277,8 +299,9 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		admin.POST("/admin/users", h.UserCreate)
 		admin.GET("/admin/users/:username/password", h.UserPasswordPage)
 		admin.POST("/admin/users/:username/password", h.UserChangePassword)
-		admin.POST("/admin/users/:username/delete", h.UserDelete)
-		admin.POST("/admin/users/:username/role", h.UserSetAdmin)
+		admin.POST("/admin/users/:username/reset-link", h.UserGenerateResetLink)
+		admin.POST("/admin/users/:username/toggle-disabled", h.UserToggleDisabled)
+		admin.POST("/admin/users/:username/remove-2fa", h.UserRemove2FA)
 		admin.POST("/admin/users/invite", h.InviteGenerate)
 		admin.POST("/admin/users/invites/:token/delete", h.InviteRevoke)
 

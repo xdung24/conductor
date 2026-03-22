@@ -12,20 +12,10 @@ build:
 	rm -f $(BINARY)
 	go build -v $(BUILD_FLAGS) -o $(BINARY) $(MAIN)
 
-## run: build and run locally
-.PHONY: run
-run: build
-	./$(BINARY)
-
-## dev: run with live env (no build cache optimisation)
-.PHONY: dev
-dev:
-	go run $(MAIN)
-
 ## test: run all tests
 .PHONY: test
 test:
-	go test ./... -v
+	go vet ./... &&	go test ./... -v
 
 ## coverage: run tests and generate HTML coverage report
 .PHONY: coverage

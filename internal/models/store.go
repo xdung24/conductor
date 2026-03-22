@@ -361,12 +361,19 @@ func (s *UserStore) Count() (int, error) {
 	return count, err
 }
 
+// CountAdmins returns the number of users with admin privileges.
+func (s *UserStore) CountAdmins() (int, error) {
+	var count int
+	err := s.db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE is_admin=1`).Scan(&count)
+	return count, err
+}
+
 // GetByUsername returns a user by username.
 func (s *UserStore) GetByUsername(username string) (*User, error) {
 	u := &User{}
 	err := s.db.QueryRowContext(context.Background(), `
-		SELECT id, username, password, created_at, is_admin FROM users WHERE username=?
-	`, username).Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin)
+		SELECT id, username, password, created_at, is_admin, disabled, COALESCE(totp_enabled, 0) FROM users WHERE username=?
+	`, username).Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -398,7 +405,7 @@ func (s *UserStore) SetAdmin(username string, admin bool) error {
 
 // ListAll returns all user records from the users database.
 func (s *UserStore) ListAll() ([]*User, error) {
-	rows, err := s.db.QueryContext(context.Background(), `SELECT id, username, password, created_at, is_admin FROM users ORDER BY id ASC`)
+	rows, err := s.db.QueryContext(context.Background(), `SELECT id, username, password, created_at, is_admin, disabled, COALESCE(totp_enabled, 0) FROM users ORDER BY id ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -407,12 +414,59 @@ func (s *UserStore) ListAll() ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		u := &User{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
 	}
 	return users, rows.Err()
+}
+
+// ListPaged returns users filtered by an optional email substring query,
+// paginated to pageSize per page (1-based page index).
+// Returns the matching users, the total matching count, and any error.
+func (s *UserStore) ListPaged(q string, page, pageSize int) ([]*User, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * pageSize
+	like := "%" + q + "%"
+
+	var total int
+	if err := s.db.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM users WHERE username LIKE ?`, like).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("list paged count: %w", err)
+	}
+
+	rows, err := s.db.QueryContext(context.Background(),
+		`SELECT id, username, password, created_at, is_admin, disabled, COALESCE(totp_enabled, 0)
+		 FROM users WHERE username LIKE ? ORDER BY id ASC LIMIT ? OFFSET ?`,
+		like, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list paged query: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*User
+	for rows.Next() {
+		u := &User{}
+		if err := rows.Scan(&u.ID, &u.Username, &u.Password, &u.CreatedAt, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled); err != nil {
+			return nil, 0, err
+		}
+		users = append(users, u)
+	}
+	return users, total, rows.Err()
+}
+
+// SetDisabled enables or disables a user account.
+func (s *UserStore) SetDisabled(username string, disabled bool) error {
+	val := 0
+	if disabled {
+		val = 1
+	}
+	_, err := s.db.ExecContext(context.Background(),
+		`UPDATE users SET disabled=? WHERE username=?`, val, username)
+	return err
 }
 
 // RegisterPushToken records a mapping from push token to username in the shared users DB.

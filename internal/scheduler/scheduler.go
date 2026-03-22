@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -60,7 +60,7 @@ func New(db *sql.DB) *Scheduler {
 func (s *Scheduler) Start() {
 	monitors, err := s.monitors.List()
 	if err != nil {
-		log.Printf("scheduler: failed to load monitors: %v", err)
+		slog.Error("scheduler: failed to load monitors", "error", err)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (s *Scheduler) Start() {
 			s.Schedule(m)
 		}
 	}
-	log.Printf("scheduler: started %d monitor(s)", len(s.jobs))
+	slog.Info("scheduler: started", "monitors", len(s.jobs))
 }
 
 // Stop cancels all running jobs and releases cached network resources.
@@ -145,7 +145,7 @@ func (s *Scheduler) Schedule(m *models.Monitor) {
 				}
 				// Skip check if within an active maintenance window.
 				if inMaint, _ := s.maintenance.IsInMaintenance(latest.ID, time.Now().UTC()); inMaint {
-					log.Printf("monitor[%d] %s — skipped (maintenance window active)", latest.ID, latest.Name)
+					slog.Info("monitor skipped: maintenance window active", "monitor_id", latest.ID, "monitor_name", latest.Name)
 					continue
 				}
 				go s.runCheck(latest)
@@ -199,23 +199,23 @@ func (s *Scheduler) runCheck(m *models.Monitor) {
 	}
 
 	if err := s.heartbeat.Insert(h); err != nil {
-		log.Printf("scheduler: failed to save heartbeat for monitor %d: %v", m.ID, err)
+		slog.Error("scheduler: failed to save heartbeat", "monitor_id", m.ID, "error", err)
 	}
 
 	statusText := "UP"
 	if result.Status == 0 {
 		statusText = "DOWN"
 	}
-	log.Printf("monitor[%d] %s — %s (%dms) %s", m.ID, m.Name, statusText, result.LatencyMs, result.Message)
+	slog.Info("monitor check", "monitor_id", m.ID, "monitor_name", m.Name, "status", statusText, "latency_ms", result.LatencyMs, "message", result.Message)
 
 	// Track downtime events on state transitions.
 	if result.Status == 0 && (prevStatus == nil || *prevStatus != 0) {
 		if err := s.downtimeEvents.OpenIncident(m.ID, now); err != nil {
-			log.Printf("scheduler: open incident for monitor %d: %v", m.ID, err)
+			slog.Error("scheduler: open incident error", "monitor_id", m.ID, "error", err)
 		}
 	} else if result.Status == 1 && prevStatus != nil && *prevStatus == 0 {
 		if err := s.downtimeEvents.CloseIncident(m.ID, now); err != nil {
-			log.Printf("scheduler: close incident for monitor %d: %v", m.ID, err)
+			slog.Error("scheduler: close incident error", "monitor_id", m.ID, "error", err)
 		}
 	}
 
@@ -224,7 +224,7 @@ func (s *Scheduler) runCheck(m *models.Monitor) {
 
 	// Persist the last status for the next comparison.
 	if err := s.monitors.UpdateLastStatus(m.ID, result.Status); err != nil {
-		log.Printf("scheduler: failed to update last_status for monitor %d: %v", m.ID, err)
+		slog.Error("scheduler: failed to update last_status", "monitor_id", m.ID, "error", err)
 	}
 }
 
@@ -232,7 +232,7 @@ func (s *Scheduler) runCheck(m *models.Monitor) {
 func (s *Scheduler) maybeNotify(m *models.Monitor, result monitor.Result) {
 	_, lastNotified, err := s.monitors.GetLastStatuses(m.ID)
 	if err != nil {
-		log.Printf("scheduler: get last statuses for monitor %d: %v", m.ID, err)
+		slog.Error("scheduler: get last statuses error", "monitor_id", m.ID, "error", err)
 		return
 	}
 
@@ -254,7 +254,7 @@ func (s *Scheduler) maybeNotify(m *models.Monitor, result monitor.Result) {
 		// No notifications configured — still update the notified status so we
 		// don't log errors on every check.
 		if err != nil {
-			log.Printf("scheduler: list notifications for monitor %d: %v", m.ID, err)
+			slog.Error("scheduler: list notifications error", "monitor_id", m.ID, "error", err)
 		}
 		_ = s.monitors.UpdateLastNotifiedStatus(m.ID, result.Status)
 		return
@@ -264,7 +264,7 @@ func (s *Scheduler) maybeNotify(m *models.Monitor, result monitor.Result) {
 	for _, n := range notifs {
 		var cfg map[string]string
 		if err := json.Unmarshal([]byte(n.Config), &cfg); err != nil {
-			log.Printf("scheduler: bad config for notification %d: %v", n.ID, err)
+			slog.Error("scheduler: bad notification config", "notification_id", n.ID, "error", err)
 			continue
 		}
 		configs = append(configs, notifier.NotifConfig{
@@ -308,12 +308,12 @@ func (s *Scheduler) maybeNotify(m *models.Monitor, result monitor.Result) {
 			CreatedAt:        now,
 		}
 		if err := s.notifLogs.Insert(l); err != nil {
-			log.Printf("scheduler: failed to insert notification log: %v", err)
+			slog.Error("scheduler: failed to insert notification log", "error", err)
 		}
 	}
 
 	if err := s.monitors.UpdateLastNotifiedStatus(m.ID, result.Status); err != nil {
-		log.Printf("scheduler: update last_notified_status for monitor %d: %v", m.ID, err)
+		slog.Error("scheduler: update last_notified_status error", "monitor_id", m.ID, "error", err)
 	}
 }
 
@@ -334,28 +334,28 @@ func (s *Scheduler) RecordHeartbeat(m *models.Monitor, status, latencyMs int, me
 		CreatedAt: now,
 	}
 	if err := s.heartbeat.Insert(h); err != nil {
-		log.Printf("scheduler: push heartbeat insert for monitor %d: %v", m.ID, err)
+		slog.Error("scheduler: push heartbeat insert error", "monitor_id", m.ID, "error", err)
 	}
 	statusText := "UP"
 	if status == 0 {
 		statusText = "DOWN"
 	}
-	log.Printf("push[%d] %s — %s (%dms) %s", m.ID, m.Name, statusText, latencyMs, message)
+	slog.Info("push monitor check", "monitor_id", m.ID, "monitor_name", m.Name, "status", statusText, "latency_ms", latencyMs, "message", message)
 
 	// Track downtime events on state transitions.
 	if status == 0 && (prevStatus == nil || *prevStatus != 0) {
 		if err := s.downtimeEvents.OpenIncident(m.ID, now); err != nil {
-			log.Printf("scheduler: open incident for monitor %d: %v", m.ID, err)
+			slog.Error("scheduler: open incident error", "monitor_id", m.ID, "error", err)
 		}
 	} else if status == 1 && prevStatus != nil && *prevStatus == 0 {
 		if err := s.downtimeEvents.CloseIncident(m.ID, now); err != nil {
-			log.Printf("scheduler: close incident for monitor %d: %v", m.ID, err)
+			slog.Error("scheduler: close incident error", "monitor_id", m.ID, "error", err)
 		}
 	}
 
 	s.maybeNotify(m, monitor.Result{Status: status, LatencyMs: latencyMs, Message: message})
 	if err := s.monitors.UpdateLastStatus(m.ID, status); err != nil {
-		log.Printf("scheduler: push update last_status for monitor %d: %v", m.ID, err)
+		slog.Error("scheduler: push update last_status error", "monitor_id", m.ID, "error", err)
 	}
 }
 

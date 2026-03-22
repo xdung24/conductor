@@ -178,10 +178,22 @@ This document tracks which features are implemented, in progress, or planned.
 | Multi-user support | ✅ Done | Per-user monitors/notifications in isolated SQLite DB files; shared `users.db` for auth + push token routing; `Registry` + `MultiScheduler` for per-user DB and scheduler lifecycle |
 | Import / export monitors | ✅ Done | Export a single monitor's config as JSON (`GET /monitors/:id/export`); import via file upload (`POST /monitors/import`) |
 | User management admin page | ✅ Done | `/admin/users` — list, add, change password, delete users |
+| Admin password-reset link | ✅ Done | Admin generates a 30-min single-use reset link for any user; user redeems at `/reset-password?token=…` without needing their old password |
+| Disable / enable user accounts | ✅ Done | Admin can disable an account: blocks login, invalidates all sessions, and stops monitor background jobs; re-enabling restarts the scheduler |
 | Account registration | ✅ Done | Open registration (toggleable by admin); startup system token grants admin to first registrant; admin invite links (single-use, no expiry); runtime enable/disable via settings page |
 | Role-based access control | ✅ Done | First account (via startup token) becomes admin; admin-only routes gated by `AdminRequired` middleware; normal users isolated to own data by per-user DB design; admin can promote/demote users |
+| Username = email address | ✅ Done | Strict email validation on new accounts (ASCII-only, no `+`, no Unicode); existing accounts not forced to migrate; advisory warning in admin settings |
+| Admin: Remove 2FA for user | ✅ Done | Admin can clear TOTP secret for a user (lost-device recovery); target receives notification email |
+| User list: search + pagination | ✅ Done | Search by email substring; 10 items per page with Previous/Next controls |
+| System SMTP (transactional email) | ✅ Done | `SYSTEM_SMTP_*` env vars; fire-and-forget sending; HTML emails with plain-text fallback; BCC support |
+| Transactional emails | ✅ Done | Automated emails for: invite link, password reset, account disabled/enabled, 2FA removed/enabled, password changed by admin, password changed via reset link |
 
 ---
+
+## Status page features
+
+| Customizable status page for unauthorized user to read result (UP/DOWN) | Done | html page|
+| Summary page for unauthorized user to fetch result | Done | json |
 
 ## Legend
 

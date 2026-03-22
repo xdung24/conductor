@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
+	"github.com/xdung24/conductor/internal/mailer"
 )
 
 // TwoFAPage renders the 2FA status page for the current user.
@@ -129,6 +130,9 @@ func (h *Handler) TwoFAVerify(c *gin.Context) {
 		})
 		return
 	}
+
+	// Notify the user that 2FA was enabled (fire-and-forget).
+	h.mailer.SendAsync(username, "Two-factor authentication enabled", mailer.RenderTwoFAEnabled())
 
 	c.SetCookie("sm_flash", "Two-factor authentication has been enabled.", 60, "/", "", false, true)
 	c.Redirect(http.StatusFound, "/account/2fa")

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/xdung24/conductor/internal/config"
 	"github.com/xdung24/conductor/internal/database"
+	"github.com/xdung24/conductor/internal/mailer"
 	"github.com/xdung24/conductor/internal/models"
 	"github.com/xdung24/conductor/internal/monitor"
 	"github.com/xdung24/conductor/internal/scheduler"
@@ -20,21 +22,25 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	cfg := config.Load()
 
 	// Open and migrate the shared users database.
 	usersDB, err := database.Open(filepath.Join(cfg.DataDir, "users.db"))
 	if err != nil {
-		log.Fatalf("failed to open users database: %v", err)
+		slog.Error("failed to open users database", "error", err)
+		os.Exit(1)
 	}
 	defer func() {
 		if err := usersDB.Close(); err != nil {
-			log.Printf("failed to close users database: %v", err)
+			slog.Error("failed to close users database", "error", err)
 		}
 	}()
 
 	if err := database.MigrateUsersDB(usersDB); err != nil {
-		log.Fatalf("failed to run users migrations: %v", err)
+		slog.Error("failed to run users migrations", "error", err)
+		os.Exit(1)
 	}
 
 	// Create per-user DB registry.
@@ -49,17 +55,18 @@ func main() {
 	userStore := models.NewUserStore(usersDB)
 	existingUsers, err := userStore.ListAll()
 	if err != nil {
-		log.Fatalf("failed to list users: %v", err)
+		slog.Error("failed to list users", "error", err)
+		os.Exit(1)
 	}
 	for _, u := range existingUsers {
 		db, err := registry.Get(u.Username)
 		if err != nil {
-			log.Printf("warning: failed to open db for user %q: %v", u.Username, err)
+			slog.Warn("failed to open db for user", "username", u.Username, "error", err)
 			continue
 		}
 		msched.StartForUser(u.Username, db)
 	}
-	log.Printf("initialized %d user database(s)", len(existingUsers))
+	slog.Info("initialized user databases", "count", len(existingUsers))
 
 	// Set up DockerHostLookup so the DockerChecker can resolve docker_host_id
 	// values to their connection details at check time using the per-user DB.
@@ -87,20 +94,25 @@ func main() {
 		regTokenStore := models.NewRegistrationTokenStore(usersDB)
 		token, err := regTokenStore.Generate("system", 30*time.Minute)
 		if err != nil {
-			log.Printf("warning: failed to generate setup token: %v", err)
+			slog.Warn("failed to generate setup token", "error", err)
 		} else {
 			addr := cfg.ListenAddr
 			if len(addr) > 0 && addr[0] == ':' {
 				addr = "localhost" + addr
 			}
-			log.Printf("=================================================================")
-			log.Printf("  No users found — register your admin account (expires in 30 min)")
-			log.Printf("  http://%s/register?token=%s", addr, token)
-			log.Printf("=================================================================")
+			setupURL := "http://" + addr + "/register?token=" + token
+			slog.Info("first run: register admin account", "url", setupURL, "expires_in", "30m")
 		}
 	}
 
-	router := web.NewRouter(usersDB, registry, msched, cfg)
+	// Start the web server. The handlers will use the usersDB and registry to access user and host data,
+	// and the multi-scheduler to start/stop checks when users are created/deleted.
+	systemMailer := mailer.New(cfg)
+	if systemMailer.Enabled() {
+		slog.Info("system SMTP enabled", "host", cfg.SystemSMTPHost)
+	}
+	gin.SetMode(gin.ReleaseMode)
+	router := web.NewRouter(usersDB, registry, msched, cfg, systemMailer)
 
 	srv := &http.Server{
 		Addr:         cfg.ListenAddr,
@@ -111,21 +123,25 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("conductor listening on %s", cfg.ListenAddr)
+		slog.Info("conductor listening", "addr", cfg.ListenAddr)
+		gin.SetMode(gin.DebugMode)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
+	// Wait for interrupt signal to gracefully shut down the server with a timeout of 5 seconds.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("shutting down gracefully...")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	slog.Info("shutting down gracefully")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("forced shutdown: %v", err)
+		slog.Error("forced shutdown", "error", err)
+		os.Exit(1)
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }

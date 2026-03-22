@@ -13,6 +13,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/xdung24/conductor/internal/config"
 	"github.com/xdung24/conductor/internal/database"
+	"github.com/xdung24/conductor/internal/mailer"
 	"github.com/xdung24/conductor/internal/models"
 	"github.com/xdung24/conductor/internal/scheduler"
 	"golang.org/x/crypto/bcrypt"
@@ -40,6 +41,7 @@ type Handler struct {
 	msched     *scheduler.MultiScheduler // per-user schedulers
 	cfg        *config.Config
 	users      *models.UserStore  // backed by usersDB
+	mailer     *mailer.Mailer     // system transactional email (nil = disabled)
 	docsHTML   template.HTML      // pre-rendered docs markdown (rendered once at startup)
 	chartCache *chartCache        // TTL cache for public chart JSON responses
 	pageCache  *chartCache        // TTL cache for rendered public status page HTML
@@ -47,7 +49,7 @@ type Handler struct {
 }
 
 // New creates a Handler.
-func New(usersDB *sql.DB, registry *database.Registry, msched *scheduler.MultiScheduler, cfg *config.Config, tmpl *template.Template) *Handler {
+func New(usersDB *sql.DB, registry *database.Registry, msched *scheduler.MultiScheduler, cfg *config.Config, tmpl *template.Template, m *mailer.Mailer) *Handler {
 	return &Handler{
 		usersDB:    usersDB,
 		registry:   registry,
@@ -55,6 +57,7 @@ func New(usersDB *sql.DB, registry *database.Registry, msched *scheduler.MultiSc
 		docsHTML:   renderDocsMarkdown(),
 		cfg:        cfg,
 		users:      models.NewUserStore(usersDB),
+		mailer:     m,
 		chartCache: newChartCache(),
 		pageCache:  newChartCache(),
 		tmpl:       tmpl,
@@ -117,7 +120,7 @@ func (h *Handler) AuthRequired() gin.HandlerFunc {
 				return
 			}
 			u, err := h.users.GetByUsername(username)
-			if err != nil || u == nil {
+			if err != nil || u == nil || u.Disabled {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
 				return
 			}
@@ -143,7 +146,7 @@ func (h *Handler) AuthRequired() gin.HandlerFunc {
 			return
 		}
 		u, err := h.users.GetByUsername(username)
-		if err != nil || u == nil {
+		if err != nil || u == nil || u.Disabled {
 			c.Redirect(http.StatusFound, "/login")
 			c.Abort()
 			return
@@ -192,7 +195,7 @@ func (h *Handler) validSession(token string) bool {
 		return false
 	}
 	u, err := h.users.GetByUsername(username)
-	return err == nil && u != nil
+	return err == nil && u != nil && !u.Disabled
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +222,11 @@ func (h *Handler) LoginSubmit(c *gin.Context) {
 
 	u, err := h.users.GetByUsername(username)
 	if err != nil || u == nil {
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"Error": "Invalid username or password"})
+		return
+	}
+
+	if u.Disabled {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"Error": "Invalid username or password"})
 		return
 	}

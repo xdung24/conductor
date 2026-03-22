@@ -27,9 +27,9 @@
     <form method="POST" action="{{ if .IsNew }}/admin/users{{ else }}/admin/users/{{ .TargetUser }}/password{{ end }}">
         {{ if .IsNew }}
         <div class="form-group">
-            <label for="username">Username</label>
-            <input class="form-control" type="text" id="username" name="username"
-                   value="{{ .Username }}" autocomplete="username" required />
+            <label for="username">Email</label>
+            <input class="form-control" type="email" id="username" name="username"
+                   value="{{ .Username }}" autocomplete="email" maxlength="254" required />
         </div>
         {{ end }}
 
