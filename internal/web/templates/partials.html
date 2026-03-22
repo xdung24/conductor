@@ -107,6 +107,47 @@
 
     .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
 
+    /* Hamburger button (mobile only) */
+    .nav-hamburger {
+        display: none;
+        background: none; border: 1px solid #334155; border-radius: 0.4rem;
+        color: #94a3b8; cursor: pointer; padding: 0.3rem 0.55rem;
+        font-size: 1.1rem; line-height: 1; align-items: center;
+    }
+    [data-theme="light"] .nav-hamburger { border-color: #cbd5e1; color: #475569; }
+
+    /* Mobile slide-down nav menu */
+    .nav-mobile-menu {
+        display: none; flex-direction: column;
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: #1e293b; border-bottom: 1px solid #334155;
+        padding: 0.5rem 0; z-index: 99;
+    }
+    .nav-mobile-menu.open { display: flex; }
+    .nav-mobile-menu a {
+        display: block; padding: 0.75rem 1.5rem;
+        color: #94a3b8; font-size: 0.9rem;
+    }
+    .nav-mobile-menu a:hover { background: #334155; text-decoration: none; }
+    [data-theme="light"] .nav-mobile-menu { background: #ffffff; border-bottom-color: #e2e8f0; }
+    [data-theme="light"] .nav-mobile-menu a { color: #475569; }
+    [data-theme="light"] .nav-mobile-menu a:hover { background: #f1f5f9; }
+
+    /* Responsive layout */
+    @media (max-width: 640px) {
+        .navbar { padding: 0 1rem; }
+        .nav-page-links { display: none !important; }
+        .nav-hamburger { display: inline-flex !important; }
+        .nav-username { display: none !important; }
+        .container { padding: 1rem 0.75rem; }
+        .card { padding: 1rem; overflow-x: auto; }
+        .page-title { font-size: 1.25rem; margin-bottom: 1rem; }
+        .stats { flex-direction: column; }
+        .stat-card { min-width: auto; }
+        th, td { padding: 0.6rem 0.5rem; font-size: 0.85rem; }
+        .btn { padding: 0.45rem 0.8rem; }
+    }
+
     /* Navbar dropdown */
     .nav-dropdown { position: relative; display: inline-flex; align-items: center; }
     .nav-dropdown-toggle {
@@ -141,10 +182,12 @@
 {{ define "navbar" }}
 <nav class="navbar">
     <a class="navbar-brand" href="/monitors">&#x2665; <span>Service</span>Conductor</a>
-    <div class="navbar-actions" style="display:flex; gap:1.5rem; align-items:center;">
-        <a href="/monitors" style="color:#94a3b8; font-size:0.875rem;">Monitors</a>
-        <a href="/notifications/logs" style="color:#94a3b8; font-size:0.875rem;">Notifications</a>
-        <a href="/status-pages" style="color:#94a3b8; font-size:0.875rem;">Status Pages</a>
+    <div class="navbar-actions" style="display:flex; gap:1rem; align-items:center;">
+        <div class="nav-page-links" style="display:flex; gap:1.5rem; align-items:center;">
+            <a href="/monitors" style="color:#94a3b8; font-size:0.875rem;">Monitors</a>
+            <a href="/notifications/logs" style="color:#94a3b8; font-size:0.875rem;">Notifications</a>
+            <a href="/status-pages" style="color:#94a3b8; font-size:0.875rem;">Status Pages</a>
+        </div>
         <form method="POST" action="/settings/theme" style="display:inline; margin:0;">
             <button type="submit" title="Toggle theme"
                     style="background:none; border:1px solid #334155; border-radius:0.4rem; color:#94a3b8;
@@ -153,8 +196,10 @@
             </button>
         </form>
         <div class="nav-dropdown">
-            <button class="nav-dropdown-toggle" onclick="(function(b){var m=b.nextElementSibling;m.classList.toggle('open');document.addEventListener('click',function h(e){if(!b.closest('.nav-dropdown').contains(e.target)){m.classList.remove('open');document.removeEventListener('click',h);}},{once:false});event.stopPropagation();})(this)">&#128100; {{ .Username }} &#9662;</button>
+            <button class="nav-dropdown-toggle" title="{{ .Username | html }}" onclick="(function(b){var m=b.nextElementSibling;m.classList.toggle('open');document.addEventListener('click',function h(e){if(!b.closest('.nav-dropdown').contains(e.target)){m.classList.remove('open');document.removeEventListener('click',h);}},{once:false});event.stopPropagation();})(this)">&#128100; <span class="nav-username">{{ .Username }}</span> &#9662;</button>
             <div class="nav-dropdown-menu">
+                <div style="padding:0.5rem 1rem 0.35rem; font-size:0.75rem; color:#64748b; word-break:break-all;">{{ .Username }}</div>
+                <hr class="nav-dropdown-divider">
                 <a href="/notifications">Noti Providers</a>
                 <a href="/tags">Tags</a>
                 <a href="/api-keys">API Keys</a>
@@ -174,6 +219,28 @@
                 <a href="/logout">Logout</a>
             </div>
         </div>
+        <button class="nav-hamburger" id="nav-hamburger" type="button" aria-label="Open menu">&#9776;</button>
+    </div>
+    <div class="nav-mobile-menu" id="nav-mobile-menu">
+        <a href="/monitors">Monitors</a>
+        <a href="/notifications/logs">Notifications</a>
+        <a href="/status-pages">Status Pages</a>
     </div>
 </nav>
+<script>
+(function(){
+    var btn = document.getElementById('nav-hamburger');
+    var menu = document.getElementById('nav-mobile-menu');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+        if (!menu.contains(e.target) && e.target !== btn) {
+            menu.classList.remove('open');
+        }
+    });
+})();
+</script>
 {{ end }}
