@@ -118,6 +118,10 @@ func checkerFor(db *sql.DB, cache Cache, m *models.Monitor) Checker {
 		return &KafkaChecker{}
 	case models.MonitorTypeRadius:
 		return &RadiusChecker{}
+	case models.MonitorTypeSSLCert:
+		return &SSLCertChecker{}
+	case models.MonitorTypeDomainExpiry:
+		return &DomainExpiryChecker{}
 	default:
 		return &HTTPChecker{client: cache.HTTPClient}
 	}

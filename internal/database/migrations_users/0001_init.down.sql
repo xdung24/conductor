@@ -1,6 +1,7 @@
 -- 0001_init.down.sql (users DB)
 -- Drops all tables and indexes created by the consolidated 0001_init.up.sql.
 
+DROP TABLE IF EXISTS password_reset_tokens;
 DROP TABLE IF EXISTS summary_tokens;
 DROP TABLE IF EXISTS app_settings;
 DROP TABLE IF EXISTS registration_tokens;

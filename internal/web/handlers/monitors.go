@@ -257,44 +257,50 @@ func (h *Handler) MonitorExport(c *gin.Context) {
 		SMTPIgnoreTLS        bool               `json:"smtp_ignore_tls,omitempty"`
 		SMTPUsername         string             `json:"smtp_username,omitempty"`
 		// SMTPPassword and HTTPPassword intentionally excluded from exports.
-		DBQuery         string `json:"db_query,omitempty"`
-		NotifyOnFailure bool   `json:"notify_on_failure"`
-		NotifyOnSuccess bool   `json:"notify_on_success"`
-		NotifyBodyChars int    `json:"notify_body_chars,omitempty"`
+		DBQuery               string `json:"db_query,omitempty"`
+		NotifyOnFailure       bool   `json:"notify_on_failure"`
+		NotifyOnSuccess       bool   `json:"notify_on_success"`
+		NotifyBodyChars       int    `json:"notify_body_chars,omitempty"`
+		CertExpiryAlertDays   int    `json:"cert_expiry_alert_days,omitempty"`
+		DomainExpiryAlertDays int    `json:"domain_expiry_alert_days,omitempty"`
+		DoHURL                string `json:"doh_url,omitempty"`
 	}
 	doc := exportDoc{
-		Schema:               "conductor/monitor/v1",
-		Name:                 m.Name,
-		Type:                 m.Type,
-		URL:                  m.URL,
-		IntervalSeconds:      m.IntervalSeconds,
-		TimeoutSeconds:       m.TimeoutSeconds,
-		Retries:              m.Retries,
-		DNSServer:            m.DNSServer,
-		DNSRecordType:        m.DNSRecordType,
-		DNSExpected:          m.DNSExpected,
-		HTTPAcceptedStatuses: m.HTTPAcceptedStatuses,
-		HTTPIgnoreTLS:        m.HTTPIgnoreTLS,
-		HTTPMethod:           m.HTTPMethod,
-		HTTPKeyword:          m.HTTPKeyword,
-		HTTPKeywordInvert:    m.HTTPKeywordInvert,
-		HTTPUsername:         m.HTTPUsername,
-		HTTPBearerToken:      m.HTTPBearerToken,
-		HTTPMaxRedirects:     m.HTTPMaxRedirects,
-		HTTPHeaderName:       m.HTTPHeaderName,
-		HTTPHeaderValue:      m.HTTPHeaderValue,
-		HTTPBodyType:         m.HTTPBodyType,
-		HTTPJsonPath:         m.HTTPJsonPath,
-		HTTPJsonExpected:     m.HTTPJsonExpected,
-		HTTPXPath:            m.HTTPXPath,
-		HTTPXPathExpected:    m.HTTPXPathExpected,
-		SMTPUseTLS:           m.SMTPUseTLS,
-		SMTPIgnoreTLS:        m.SMTPIgnoreTLS,
-		SMTPUsername:         m.SMTPUsername,
-		DBQuery:              m.DBQuery,
-		NotifyOnFailure:      m.NotifyOnFailure,
-		NotifyOnSuccess:      m.NotifyOnSuccess,
-		NotifyBodyChars:      m.NotifyBodyChars,
+		Schema:                "conductor/monitor/v1",
+		Name:                  m.Name,
+		Type:                  m.Type,
+		URL:                   m.URL,
+		IntervalSeconds:       m.IntervalSeconds,
+		TimeoutSeconds:        m.TimeoutSeconds,
+		Retries:               m.Retries,
+		DNSServer:             m.DNSServer,
+		DNSRecordType:         m.DNSRecordType,
+		DNSExpected:           m.DNSExpected,
+		HTTPAcceptedStatuses:  m.HTTPAcceptedStatuses,
+		HTTPIgnoreTLS:         m.HTTPIgnoreTLS,
+		HTTPMethod:            m.HTTPMethod,
+		HTTPKeyword:           m.HTTPKeyword,
+		HTTPKeywordInvert:     m.HTTPKeywordInvert,
+		HTTPUsername:          m.HTTPUsername,
+		HTTPBearerToken:       m.HTTPBearerToken,
+		HTTPMaxRedirects:      m.HTTPMaxRedirects,
+		HTTPHeaderName:        m.HTTPHeaderName,
+		HTTPHeaderValue:       m.HTTPHeaderValue,
+		HTTPBodyType:          m.HTTPBodyType,
+		HTTPJsonPath:          m.HTTPJsonPath,
+		HTTPJsonExpected:      m.HTTPJsonExpected,
+		HTTPXPath:             m.HTTPXPath,
+		HTTPXPathExpected:     m.HTTPXPathExpected,
+		SMTPUseTLS:            m.SMTPUseTLS,
+		SMTPIgnoreTLS:         m.SMTPIgnoreTLS,
+		SMTPUsername:          m.SMTPUsername,
+		DBQuery:               m.DBQuery,
+		NotifyOnFailure:       m.NotifyOnFailure,
+		NotifyOnSuccess:       m.NotifyOnSuccess,
+		NotifyBodyChars:       m.NotifyBodyChars,
+		CertExpiryAlertDays:   m.CertExpiryAlertDays,
+		DomainExpiryAlertDays: m.DomainExpiryAlertDays,
+		DoHURL:                m.DoHURL,
 	}
 
 	data, err := json.MarshalIndent(doc, "", "  ")
@@ -325,38 +331,41 @@ func (h *Handler) MonitorImport(c *gin.Context) {
 	}
 
 	type importDoc struct {
-		Schema               string             `json:"schema"`
-		Name                 string             `json:"name"`
-		Type                 models.MonitorType `json:"type"`
-		URL                  string             `json:"url"`
-		IntervalSeconds      int                `json:"interval_seconds"`
-		TimeoutSeconds       int                `json:"timeout_seconds"`
-		Retries              int                `json:"retries"`
-		DNSServer            string             `json:"dns_server"`
-		DNSRecordType        string             `json:"dns_record_type"`
-		DNSExpected          string             `json:"dns_expected"`
-		HTTPAcceptedStatuses string             `json:"http_accepted_statuses"`
-		HTTPIgnoreTLS        bool               `json:"http_ignore_tls"`
-		HTTPMethod           string             `json:"http_method"`
-		HTTPKeyword          string             `json:"http_keyword"`
-		HTTPKeywordInvert    bool               `json:"http_keyword_invert"`
-		HTTPUsername         string             `json:"http_username"`
-		HTTPBearerToken      string             `json:"http_bearer_token"`
-		HTTPMaxRedirects     int                `json:"http_max_redirects"`
-		HTTPHeaderName       string             `json:"http_header_name"`
-		HTTPHeaderValue      string             `json:"http_header_value"`
-		HTTPBodyType         string             `json:"http_body_type"`
-		HTTPJsonPath         string             `json:"http_json_path"`
-		HTTPJsonExpected     string             `json:"http_json_expected"`
-		HTTPXPath            string             `json:"http_xpath"`
-		HTTPXPathExpected    string             `json:"http_xpath_expected"`
-		SMTPUseTLS           bool               `json:"smtp_use_tls"`
-		SMTPIgnoreTLS        bool               `json:"smtp_ignore_tls"`
-		SMTPUsername         string             `json:"smtp_username"`
-		DBQuery              string             `json:"db_query"`
-		NotifyOnFailure      bool               `json:"notify_on_failure"`
-		NotifyOnSuccess      bool               `json:"notify_on_success"`
-		NotifyBodyChars      int                `json:"notify_body_chars"`
+		Schema                string             `json:"schema"`
+		Name                  string             `json:"name"`
+		Type                  models.MonitorType `json:"type"`
+		URL                   string             `json:"url"`
+		IntervalSeconds       int                `json:"interval_seconds"`
+		TimeoutSeconds        int                `json:"timeout_seconds"`
+		Retries               int                `json:"retries"`
+		DNSServer             string             `json:"dns_server"`
+		DNSRecordType         string             `json:"dns_record_type"`
+		DNSExpected           string             `json:"dns_expected"`
+		HTTPAcceptedStatuses  string             `json:"http_accepted_statuses"`
+		HTTPIgnoreTLS         bool               `json:"http_ignore_tls"`
+		HTTPMethod            string             `json:"http_method"`
+		HTTPKeyword           string             `json:"http_keyword"`
+		HTTPKeywordInvert     bool               `json:"http_keyword_invert"`
+		HTTPUsername          string             `json:"http_username"`
+		HTTPBearerToken       string             `json:"http_bearer_token"`
+		HTTPMaxRedirects      int                `json:"http_max_redirects"`
+		HTTPHeaderName        string             `json:"http_header_name"`
+		HTTPHeaderValue       string             `json:"http_header_value"`
+		HTTPBodyType          string             `json:"http_body_type"`
+		HTTPJsonPath          string             `json:"http_json_path"`
+		HTTPJsonExpected      string             `json:"http_json_expected"`
+		HTTPXPath             string             `json:"http_xpath"`
+		HTTPXPathExpected     string             `json:"http_xpath_expected"`
+		SMTPUseTLS            bool               `json:"smtp_use_tls"`
+		SMTPIgnoreTLS         bool               `json:"smtp_ignore_tls"`
+		SMTPUsername          string             `json:"smtp_username"`
+		DBQuery               string             `json:"db_query"`
+		NotifyOnFailure       bool               `json:"notify_on_failure"`
+		NotifyOnSuccess       bool               `json:"notify_on_success"`
+		NotifyBodyChars       int                `json:"notify_body_chars"`
+		CertExpiryAlertDays   int                `json:"cert_expiry_alert_days"`
+		DomainExpiryAlertDays int                `json:"domain_expiry_alert_days"`
+		DoHURL                string             `json:"doh_url"`
 	}
 
 	var doc importDoc
@@ -379,38 +388,41 @@ func (h *Handler) MonitorImport(c *gin.Context) {
 	}
 
 	m := &models.Monitor{
-		Name:                 doc.Name + " (imported)",
-		Type:                 doc.Type,
-		URL:                  doc.URL,
-		IntervalSeconds:      doc.IntervalSeconds,
-		TimeoutSeconds:       doc.TimeoutSeconds,
-		Retries:              doc.Retries,
-		Active:               false, // start paused so the user can review first
-		DNSServer:            doc.DNSServer,
-		DNSRecordType:        doc.DNSRecordType,
-		DNSExpected:          doc.DNSExpected,
-		HTTPAcceptedStatuses: doc.HTTPAcceptedStatuses,
-		HTTPIgnoreTLS:        doc.HTTPIgnoreTLS,
-		HTTPMethod:           doc.HTTPMethod,
-		HTTPKeyword:          doc.HTTPKeyword,
-		HTTPKeywordInvert:    doc.HTTPKeywordInvert,
-		HTTPUsername:         doc.HTTPUsername,
-		HTTPBearerToken:      doc.HTTPBearerToken,
-		HTTPMaxRedirects:     doc.HTTPMaxRedirects,
-		HTTPHeaderName:       doc.HTTPHeaderName,
-		HTTPHeaderValue:      doc.HTTPHeaderValue,
-		HTTPBodyType:         doc.HTTPBodyType,
-		HTTPJsonPath:         doc.HTTPJsonPath,
-		HTTPJsonExpected:     doc.HTTPJsonExpected,
-		HTTPXPath:            doc.HTTPXPath,
-		HTTPXPathExpected:    doc.HTTPXPathExpected,
-		SMTPUseTLS:           doc.SMTPUseTLS,
-		SMTPIgnoreTLS:        doc.SMTPIgnoreTLS,
-		SMTPUsername:         doc.SMTPUsername,
-		DBQuery:              doc.DBQuery,
-		NotifyOnFailure:      doc.NotifyOnFailure,
-		NotifyOnSuccess:      doc.NotifyOnSuccess,
-		NotifyBodyChars:      doc.NotifyBodyChars,
+		Name:                  doc.Name + " (imported)",
+		Type:                  doc.Type,
+		URL:                   doc.URL,
+		IntervalSeconds:       doc.IntervalSeconds,
+		TimeoutSeconds:        doc.TimeoutSeconds,
+		Retries:               doc.Retries,
+		Active:                false, // start paused so the user can review first
+		DNSServer:             doc.DNSServer,
+		DNSRecordType:         doc.DNSRecordType,
+		DNSExpected:           doc.DNSExpected,
+		HTTPAcceptedStatuses:  doc.HTTPAcceptedStatuses,
+		HTTPIgnoreTLS:         doc.HTTPIgnoreTLS,
+		HTTPMethod:            doc.HTTPMethod,
+		HTTPKeyword:           doc.HTTPKeyword,
+		HTTPKeywordInvert:     doc.HTTPKeywordInvert,
+		HTTPUsername:          doc.HTTPUsername,
+		HTTPBearerToken:       doc.HTTPBearerToken,
+		HTTPMaxRedirects:      doc.HTTPMaxRedirects,
+		HTTPHeaderName:        doc.HTTPHeaderName,
+		HTTPHeaderValue:       doc.HTTPHeaderValue,
+		HTTPBodyType:          doc.HTTPBodyType,
+		HTTPJsonPath:          doc.HTTPJsonPath,
+		HTTPJsonExpected:      doc.HTTPJsonExpected,
+		HTTPXPath:             doc.HTTPXPath,
+		HTTPXPathExpected:     doc.HTTPXPathExpected,
+		SMTPUseTLS:            doc.SMTPUseTLS,
+		SMTPIgnoreTLS:         doc.SMTPIgnoreTLS,
+		SMTPUsername:          doc.SMTPUsername,
+		DBQuery:               doc.DBQuery,
+		NotifyOnFailure:       doc.NotifyOnFailure,
+		NotifyOnSuccess:       doc.NotifyOnSuccess,
+		NotifyBodyChars:       doc.NotifyBodyChars,
+		CertExpiryAlertDays:   doc.CertExpiryAlertDays,
+		DomainExpiryAlertDays: doc.DomainExpiryAlertDays,
+		DoHURL:                doc.DoHURL,
 		// SMTPPassword is not exported and must be re-entered after import.
 	}
 
@@ -719,6 +731,13 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		proxyID = 0
 	}
 
+	// Domain Expiry / SSL Cert
+	domainExpiryAlertDays, _ := strconv.Atoi(c.DefaultPostForm("domain_expiry_alert_days", "30"))
+	if domainExpiryAlertDays <= 0 {
+		domainExpiryAlertDays = 30
+	}
+	dohURL := c.PostForm("doh_url")
+
 	m := &models.Monitor{
 		Name:                  name,
 		Type:                  monType,
@@ -779,6 +798,8 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		RadiusSecret:          radiusSecret,
 		RadiusCalledStationID: radiusCalledStationID,
 		ProxyID:               proxyID,
+		DomainExpiryAlertDays: domainExpiryAlertDays,
+		DoHURL:                dohURL,
 	}
 	if name == "" {
 		return m, &formError{"name is required"}

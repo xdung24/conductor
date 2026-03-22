@@ -35,7 +35,7 @@ lint:
 .PHONY: clean
 clean:
 	rm -f $(BINARY)
-	rm -rf data/conductor.db
+	rm -rf data/users.db
 
 ## docker-build: build Docker image
 .PHONY: docker-build

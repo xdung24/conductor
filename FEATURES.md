@@ -40,6 +40,8 @@ This document tracks which features are implemented, in progress, or planned.
 | Real Browser (Chromium) | ⬜ Planned | Headless browser via chromedp |
 | System Service | ✅ Done | Windows SCM (`sc.exe query`) / systemd (`systemctl is-active`) / launchd (`launchctl list`) |
 | Group / Manual | ✅ Done | Group: status derived from children; Manual: static UP/DOWN flag |
+| Domain Expiry | ✅ Done | WHOIS query to check domain registration expiry; alert N days before expiry; configurable threshold per monitor; custom DNS server or DNS-over-HTTPS (DoH) resolver for WHOIS server hostname resolution |
+| SSL Certificate | ✅ Done | Dedicated TLS dial to host:port; checks cert validity and expiry independent of HTTP response; alert N days before expiry |
 
 ---
 

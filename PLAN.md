@@ -278,6 +278,55 @@ POST to `api.globalping.io/v1/measurements`, poll for result.
 
 ---
 
+## Phase 9 — Domain & Certificate Expiry Monitors
+
+### 9.1 SSL Certificate Monitor
+- No new DB columns — reuses `cert_expiry_alert_days` (already present from phase 1.1) and `url` (`host:port`, default port 443)
+- Add `MonitorTypeSSLCert MonitorType = "ssl_cert"` constant in `internal/models/models.go`
+- Implement `SSLCertChecker` in a new `internal/monitor/checker_ssl.go`:
+  - Dial `host:port` using stdlib `crypto/tls` with a configurable timeout
+  - Inspect the leaf certificate's `NotAfter`; if already expired → DOWN
+  - If `CertExpiryAlertDays > 0` and expiry is within the alert window → DOWN with message "certificate expires in N days"
+  - Include days-remaining and subject CN in the heartbeat message for UP checks
+- Add `<option value="ssl_cert">SSL Certificate</option>` to `monitor_form.html`; the existing `cert-expiry-fields` div already covers the alert-days field — add `ssl_cert` to its visibility logic
+- Update `monitorFromForm()` in `internal/web/handlers/monitors.go` (no new fields; `cert_expiry_alert_days` already parsed)
+- Register in `checkerFor()` switch in `checker.go`
+- Add `examples/monitor-ssl-cert.json` example file
+
+### 9.2 Domain Expiry Monitor
+- Migration 0015: add two columns to monitors table:
+  - `domain_expiry_alert_days INTEGER NOT NULL DEFAULT 30`
+  - `doh_url TEXT NOT NULL DEFAULT ''` — DNS-over-HTTPS resolver URL (e.g. `https://cloudflare-dns.com/dns-query`); empty = use plain DNS
+- Add fields to `Monitor` struct in `internal/models/monitor.go`:
+  - `DomainExpiryAlertDays int    `db:"domain_expiry_alert_days"``
+  - `DoHURL                string `db:"doh_url"``
+- Update all five SQL queries in `internal/models/store.go` (`List`, `Get`, `Create`, `Update`, `GetByPushToken`) to include both new columns
+- Add `MonitorTypeDomainExpiry MonitorType = "domain_expiry"` constant in `internal/models/models.go`
+- Implement `DomainExpiryChecker` in a new `internal/monitor/checker_domain.go`:
+  - Dependencies: `github.com/likexian/whois` + `github.com/likexian/whois-parser`
+  - Extract bare domain from `monitor.URL` (strip scheme, path, port)
+  - **DNS resolution for WHOIS server hostname** — uses one of three modes in priority order:
+    1. `DoHURL` set → resolve WHOIS server address via DNS-over-HTTPS (RFC 8484 GET request with `?dns=` base64url query parameter and `Accept: application/dns-message`); custom `http.Client` with DoH transport
+    2. `DNSServer` set (existing field) → resolve via custom plain DNS server using `net.Resolver{PreferGo: true, Dial: ...}`
+    3. Neither → use system default resolver
+  - Construct a `whois.Client` with the resolved WHOIS server address; call `client.Whois(domain)`
+  - Parse result with `whoisparser.Parse()`; read `result.Domain.ExpirationDate`; parse to `time.Time`
+  - If already expired → DOWN with message "domain expired N days ago"
+  - If expiry is within `DomainExpiryAlertDays` window → DOWN with message "domain expires in N days"
+  - Otherwise → UP with days-remaining in message
+- Add `<option value="domain_expiry">Domain Expiry</option>` to `monitor_form.html`
+- Add a `domain-expiry-fields` div with:
+  - Alert days threshold field (`domain_expiry_alert_days`)
+  - Custom DNS server field (reuses existing `dns_server` input; no extra field needed)
+  - DNS-over-HTTPS URL field (`doh_url`) with placeholder `https://cloudflare-dns.com/dns-query`
+  - Note: `doh_url` takes priority over `dns_server` when both are set
+- Update `toggleTypeFields()` JS in `monitor_form.html` and hide the `noURL` list entry if needed
+- Update `monitorFromForm()` in `monitors.go` to parse `domain_expiry_alert_days` and `doh_url`
+- Register in `checkerFor()` switch in `checker.go`
+- Add `examples/monitor-domain-expiry.json` example file
+
+---
+
 ## Key Files Reference
 
 | File | Purpose |

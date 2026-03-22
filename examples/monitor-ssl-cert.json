@@ -1,0 +1,12 @@
+{
+  "schema": "conductor/monitor/v1",
+  "name": "Example SSL Certificate",
+  "type": "ssl_cert",
+  "url": "example.com",
+  "interval_seconds": 86400,
+  "timeout_seconds": 10,
+  "retries": 1,
+  "cert_expiry_alert_days": 30,
+  "notify_on_failure": true,
+  "notify_on_success": false
+}

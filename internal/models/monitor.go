@@ -6,31 +6,33 @@ import "time"
 type MonitorType string
 
 const (
-	MonitorTypeHTTP       MonitorType = "http"
-	MonitorTypeTCP        MonitorType = "tcp"
-	MonitorTypePing       MonitorType = "ping"
-	MonitorTypeDNS        MonitorType = "dns"
-	MonitorTypePush       MonitorType = "push"
-	MonitorTypeSMTP       MonitorType = "smtp"
-	MonitorTypeMySQL      MonitorType = "mysql"
-	MonitorTypePostgres   MonitorType = "postgres"
-	MonitorTypeRedis      MonitorType = "redis"
-	MonitorTypeMongoDB    MonitorType = "mongodb"
-	MonitorTypeWebSocket  MonitorType = "websocket"
-	MonitorTypeMSSQL      MonitorType = "mssql"
-	MonitorTypeMQTT       MonitorType = "mqtt"
-	MonitorTypeGRPC       MonitorType = "grpc"
-	MonitorTypeDocker     MonitorType = "docker"
-	MonitorTypeRabbitMQ   MonitorType = "rabbitmq"
-	MonitorTypeSNMP       MonitorType = "snmp"
-	MonitorTypeSystemType MonitorType = "system_service"
-	MonitorTypeTailscale  MonitorType = "tailscale"
-	MonitorTypeGlobalping MonitorType = "globalping"
-	MonitorTypeGroup      MonitorType = "group"
-	MonitorTypeManual     MonitorType = "manual"
-	MonitorTypeSIPOptions MonitorType = "sip_options"
-	MonitorTypeKafka      MonitorType = "kafka"
-	MonitorTypeRadius     MonitorType = "radius"
+	MonitorTypeHTTP         MonitorType = "http"
+	MonitorTypeTCP          MonitorType = "tcp"
+	MonitorTypePing         MonitorType = "ping"
+	MonitorTypeDNS          MonitorType = "dns"
+	MonitorTypePush         MonitorType = "push"
+	MonitorTypeSMTP         MonitorType = "smtp"
+	MonitorTypeMySQL        MonitorType = "mysql"
+	MonitorTypePostgres     MonitorType = "postgres"
+	MonitorTypeRedis        MonitorType = "redis"
+	MonitorTypeMongoDB      MonitorType = "mongodb"
+	MonitorTypeWebSocket    MonitorType = "websocket"
+	MonitorTypeMSSQL        MonitorType = "mssql"
+	MonitorTypeMQTT         MonitorType = "mqtt"
+	MonitorTypeGRPC         MonitorType = "grpc"
+	MonitorTypeDocker       MonitorType = "docker"
+	MonitorTypeRabbitMQ     MonitorType = "rabbitmq"
+	MonitorTypeSNMP         MonitorType = "snmp"
+	MonitorTypeSystemType   MonitorType = "system_service"
+	MonitorTypeTailscale    MonitorType = "tailscale"
+	MonitorTypeGlobalping   MonitorType = "globalping"
+	MonitorTypeGroup        MonitorType = "group"
+	MonitorTypeManual       MonitorType = "manual"
+	MonitorTypeSIPOptions   MonitorType = "sip_options"
+	MonitorTypeKafka        MonitorType = "kafka"
+	MonitorTypeRadius       MonitorType = "radius"
+	MonitorTypeSSLCert      MonitorType = "ssl_cert"
+	MonitorTypeDomainExpiry MonitorType = "domain_expiry"
 )
 
 // Monitor represents a monitored target.
@@ -124,8 +126,12 @@ type Monitor struct {
 	// Proxy settings (HTTP only)
 	ProxyID int64 `db:"proxy_id"` // FK to proxies.id; 0 = no proxy
 
-	// TLS certificate expiry alert (HTTP only)
-	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled
+	// TLS certificate expiry alert (HTTP and ssl_cert types)
+	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled (default 30 for ssl_cert)
+
+	// Domain Expiry monitor fields
+	DomainExpiryAlertDays int    `db:"domain_expiry_alert_days"` // return DOWN when domain expires within N days; default 30
+	DoHURL                string `db:"doh_url"`                  // DNS-over-HTTPS resolver URL (RFC 8484); empty = use plain DNSServer or system default
 
 	// Notification trigger settings
 	NotifyOnFailure bool `db:"notify_on_failure"` // send notification when check result is DOWN

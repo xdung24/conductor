@@ -78,6 +78,10 @@
                     <option value="group"  {{ if eq .Monitor.Type "group"  }}selected{{ end }}>Group</option>
                     <option value="manual" {{ if eq .Monitor.Type "manual" }}selected{{ end }}>Manual</option>
                 </optgroup>
+                <optgroup label="Security">
+                    <option value="ssl_cert"      {{ if eq .Monitor.Type "ssl_cert"      }}selected{{ end }}>SSL Certificate</option>
+                    <option value="domain_expiry" {{ if eq .Monitor.Type "domain_expiry" }}selected{{ end }}>Domain Expiry</option>
+                </optgroup>
             </select>
         </div>
         <div id="url-group" class="form-group">
@@ -271,16 +275,6 @@
                 <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
                     Prepend up to N characters of the HTTP response body to notification messages. Set to 0 to disable.
                     Useful for including API error details in alerts.
-                </small>
-            </div>
-            <div class="form-group">
-                <label for="cert_expiry_alert_days">TLS Certificate Expiry Alert <span style="color:#64748b; font-weight:400;">(days before expiry)</span></label>
-                <input class="form-control" type="number" id="cert_expiry_alert_days" name="cert_expiry_alert_days"
-                       value="{{ .Monitor.CertExpiryAlertDays }}" min="0" max="365"
-                       placeholder="0" style="max-width:10rem;" />
-                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
-                    Set to 0 to disable. When set, the monitor will go DOWN if the TLS certificate expires
-                    within this many days. Useful for catching certificate renewals before they lapse.
                 </small>
             </div>
             {{ if .AllProxies }}
@@ -609,6 +603,55 @@
             </div>
         </div>
 
+        <!-- SSL Certificate fields -->
+        <div id="ssl-cert-fields" style="display:{{ if eq .Monitor.Type "ssl_cert" }}block{{ else }}none{{ end }};">
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                URL format: <code>example.com</code> or <code>example.com:8443</code> — port 443 is used when omitted.
+                Dials directly via TLS; no HTTP request is made.
+            </small>
+        </div>
+
+        <!-- Domain Expiry fields -->
+        <div id="domain-expiry-fields" style="display:{{ if eq .Monitor.Type "domain_expiry" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="domain_expiry_alert_days">Domain Expiry Alert <span style="color:#64748b; font-weight:400;">(days before expiry)</span></label>
+                <input class="form-control" type="number" id="domain_expiry_alert_days" name="domain_expiry_alert_days"
+                       value="{{ if .Monitor.DomainExpiryAlertDays }}{{ .Monitor.DomainExpiryAlertDays }}{{ else }}30{{ end }}"
+                       min="1" max="365" style="max-width:10rem;" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Report DOWN when the domain expires within this many days. Default: 30.
+                </small>
+            </div>
+            <div class="form-group">
+                <label for="doh_url">DNS-over-HTTPS URL <span style="color:#64748b; font-weight:400;">(optional — takes priority over Custom DNS Server)</span></label>
+                <input class="form-control" type="text" id="doh_url" name="doh_url"
+                       value="{{ .Monitor.DoHURL }}"
+                       placeholder="https://cloudflare-dns.com/dns-query" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    When set, WHOIS server hostname resolution is performed via DNS-over-HTTPS (RFC 8484).
+                    Leave blank to use the <em>Custom DNS Server</em> above, or the system default.
+                    Examples: <code>https://cloudflare-dns.com/dns-query</code>, <code>https://dns.google/dns-query</code>.
+                </small>
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                URL can be a bare domain (<code>example.com</code>) or include a scheme/path (<code>https://example.com/path</code>) — the scheme and path are stripped automatically.
+            </small>
+        </div>
+
+        <!-- TLS / SSL certificate expiry alert — shared by HTTP and SSL Certificate types -->
+        <div id="cert-expiry-fields" style="display:{{ if or (eq .Monitor.Type "http") (eq .Monitor.Type "ssl_cert") }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="cert_expiry_alert_days">TLS Certificate Expiry Alert <span style="color:#64748b; font-weight:400;">(days before expiry)</span></label>
+                <input class="form-control" type="number" id="cert_expiry_alert_days" name="cert_expiry_alert_days"
+                       value="{{ .Monitor.CertExpiryAlertDays }}" min="0" max="365"
+                       placeholder="0" style="max-width:10rem;" />
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Set to 0 to disable. Report DOWN when the TLS certificate expires within this many days.
+                    For the <em>SSL Certificate</em> type, set to 0 to use the default of 30 days.
+                </small>
+            </div>
+        </div>
+
             <input type="hidden" name="push_token" value="{{ .Monitor.PushToken }}" />
             {{ if .Monitor.PushToken }}
             <div class="form-group">
@@ -788,6 +831,9 @@ function toggleTypeFields() {
     document.getElementById('manual-fields').style.display         = (t === 'manual')         ? 'block' : 'none';
     document.getElementById('kafka-fields').style.display          = (t === 'kafka')          ? 'block' : 'none';
     document.getElementById('radius-fields').style.display         = (t === 'radius')         ? 'block' : 'none';
+    document.getElementById('ssl-cert-fields').style.display       = (t === 'ssl_cert')       ? 'block' : 'none';
+    document.getElementById('domain-expiry-fields').style.display  = (t === 'domain_expiry')  ? 'block' : 'none';
+    document.getElementById('cert-expiry-fields').style.display    = (t === 'http' || t === 'ssl_cert') ? 'block' : 'none';
     // push-fields
     var pf = document.getElementById('push-fields');
     if (pf) pf.style.display = (t === 'push') ? 'block' : 'none';
@@ -832,6 +878,10 @@ function toggleTypeFields() {
         urlInput.placeholder = 'Tailscale hostname or IP, e.g. my-device';
     } else if (t === 'globalping') {
         urlInput.placeholder = 'Target host or IP, e.g. example.com';
+    } else if (t === 'ssl_cert') {
+        urlInput.placeholder = 'example.com  or  example.com:8443  (default port 443)';
+    } else if (t === 'domain_expiry') {
+        urlInput.placeholder = 'example.com  or  https://example.com  (scheme stripped automatically)';
     } else {
         urlInput.placeholder = 'https://example.com  or  host:port  or  hostname';
     }

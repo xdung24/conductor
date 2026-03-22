@@ -205,3 +205,7 @@ CREATE TABLE IF NOT EXISTS proxies (
     created_at DATETIME NOT NULL DEFAULT (datetime('now')),
     updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 0015: domain expiry monitor fields
+ALTER TABLE monitors ADD COLUMN domain_expiry_alert_days INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE monitors ADD COLUMN doh_url TEXT NOT NULL DEFAULT '';

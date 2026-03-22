@@ -56,9 +56,23 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 INSERT OR IGNORE INTO app_settings (key, value) VALUES ('registration_enabled', 'true');
 
--- 0007: Maps every status-page summary UUID to its owning user so the
+-- 0006: Maps every status-page summary UUID to its owning user so the
 -- unauthenticated /summary/:uuid endpoint can locate the correct per-user DB.
 CREATE TABLE IF NOT EXISTS summary_tokens (
     uuid     TEXT NOT NULL PRIMARY KEY,
     username TEXT NOT NULL
+);
+
+-- 0007: Adds account-level disable flag and password-reset tokens.
+-- Allow admins to temporarily lock an account.
+ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0;
+
+-- Short-lived tokens used by the admin-generated password-reset flow.
+-- Each token is single-use and expires 30 minutes after creation.
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token      TEXT     NOT NULL PRIMARY KEY,
+    username   TEXT     NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at    DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
