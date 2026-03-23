@@ -278,6 +278,20 @@ POST to `api.globalping.io/v1/measurements`, poll for result.
 
 ---
 
+
+## Phase 8 — User Management V2 & System Email
+
+- **Enforce email as username** — validate email format on `UserCreate`, `RegisterSubmit`, `InviteGenerate`; lowercase before storing; "Username" → "Email" in all UI labels. Existing non-email accounts are not blocked — admin settings shows an advisory banner.
+- **Clean up admin user actions** — remove Make/Revoke Admin and Delete User buttons; keep Disable. Add an admin "Remove 2FA" button (with confirm dialog); show "2FA Not Set" when inactive.
+- **User list: search + pagination** — filter by email substring (`?q=`), 10 per page (`?page=`).
+- **System SMTP** — configure via `SYSTEM_SMTP_*` env vars (host, port, username, password, from, TLS, BCC). Empty host = disabled.
+- **Transactional emails** — fire-and-forget `SendAsync`; HTML with plain-text fallback. Triggered on: invite created, password reset, account enabled/disabled, 2FA enabled/removed, password changed.
+
+## Phase 9 - Push notification & Notification badge
+- Notification badge to show number of new notification badge
+- Push notification to user's browser 
+
+
 ## Key Files Reference
 
 | File | Purpose |
@@ -322,199 +336,3 @@ POST to `api.globalping.io/v1/measurements`, poll for result.
 | 2FA | Per-user opt-in | Admin cannot force 2FA on others (for now) |
 
 ---
-
-## Phase 8 — User Management V2 & System Email
-
-All decisions resolved. Ready to implement.
-
-### Resolved Decisions
-
-| Q | Decision |
-|---|---|
-| Existing non-email usernames (e.g. `admin`) | No forced migration. Show a warning banner on the admin settings page if any account's username fails email validation. Login is never blocked. |
-| "Remove 2FA" / "2FA Not Set" display | Show grey "2FA Not Set" (non-clickable) when inactive. Show an orange "Remove 2FA" button with a `confirm()` dialog when active. |
-| Recipient email for invite link | **Mandatory.** Admin must enter the recipient's email. The link is also shown in the flash message as a copy-paste fallback. |
-| System SMTP config location | **Environment variables only** (`SYSTEM_SMTP_*`) — no DB storage. |
-| Email format | **HTML** with inline CSS matching the app's brand. A plain-text `multipart/alternative` fallback is always included. |
-| Email errors | **Fire-and-forget** goroutine. SMTP errors log a `[WARNING]` line and never affect the HTTP response. `SYSTEM_SMTP_BCC` adds a BCC to every message for delivery verification. |
-
-### 8.1 Remove "Make/Revoke Admin" Button
-
-- Remove role-toggle button from `users.html`
-- Remove `UserSetAdmin` handler from `handlers/users.go`
-- Remove `POST /admin/users/:username/role` route from `router.go`
-- The `is_admin` column and `SetAdmin` store method are kept for future CLI use
-
-### 8.2 Remove "Delete User" Button
-
-- Remove Delete button from `users.html`
-- Remove `UserDelete` handler from `handlers/users.go`
-- Remove `POST /admin/users/:username/delete` route from `router.go`
-- The Disable feature (V1) is the intended replacement
-
-### 8.3 "Remove 2FA" / "2FA Not Set" Cell
-
-**Model change:** Add `TOTPEnabled bool` to the `User` struct; extend `GetByUsername` + `ListAll` SQL to include `totp_enabled`. No new migration — column exists.
-
-**New route:** `POST /admin/users/:username/remove-2fa`  
-**New handler:** `UserRemove2FA`
-1. Reject if target does not exist.
-2. Reject if `target == currentUser`.
-3. Call `users.DisableTOTP(target)` — clears `totp_secret`, sets `totp_enabled=0`.
-4. Send `2fa_removed` system email to the target.
-5. Redirect `/admin/users?flash=…`
-
-**Template (`users.html`):**
-```
-if .TOTPEnabled → <form POST /admin/users/{{.Username}}/remove-2fa onsubmit="confirm(...)">
-                    <button class="btn btn-warning btn-sm">Remove 2FA</button>
-                  </form>
-else            → <span style="color:#64748b; font-size:0.8rem;">2FA Not Set</span>
-```
-
-### 8.4 Username = Email Address
-
-No new migration. Enforcement is at the application layer only.
-
-**`validateEmail(s string) error`** — new file `internal/web/handlers/validation.go`:
-
-| Rule | Prevents |
-|---|---|
-| Non-empty, max 254 chars | RFC 5321 limit |
-| ASCII-only (no Unicode) | Homograph attacks |
-| No `+` in local part | Plus-alias account farming |
-| No whitespace | Smuggling / display confusion |
-| Exactly one `@` | Basic structure |
-| Local allow-list: `a-zA-Z0-9._-`; no leading/trailing `.` or `-`; no `..` | Malformed addresses |
-| Domain: `a-zA-Z0-9-.`; at least one `.`; no leading/trailing `.` or `-` | Valid hostname |
-| Lowercased before storing | Case-variant duplicates |
-
-Applied in: `UserCreate`, `RegisterSubmit`, `InviteGenerate` (recipient field).
-
-**UI label changes:** "Username" → "Email" in `login.html`, `register.html`, `user_form.html`, `users.html` (column header).
-
-**Non-email existing accounts:** Admin settings page shows a subtle banner if any account's username is not a valid email (advisory only, no enforcement).
-
-### 8.5 User List: Search Filter + Pagination
-
-**URL params:** `?q=<email substring>` + `?page=<1-based>`
-
-**New store method:** `ListPaged(q string, page, pageSize int) ([]*User, int, error)`  
-- `WHERE username LIKE '%'||?||'%'` + `LIMIT ? OFFSET ?`
-- Returns: user slice, total matching count, error
-
-**Handler (`UserList`):** Reads `q` + `page`; passes `Users`, `Total`, `Page`, `PageSize`, `TotalPages`, `Q` to template.
-
-**Template (`users.html`):**
-- Search bar above the table (GET form, `name="q"`)
-- Pagination bar below: Previous / Next links + "Page X of Y"
-- 10 items per page
-
-### 8.6 System SMTP Configuration
-
-New env vars added to `internal/config/config.go`:
-
-| Variable | Default | Notes |
-|---|---|---|
-| `SYSTEM_SMTP_HOST` | _(empty = disabled)_ | Setting this enables system email |
-| `SYSTEM_SMTP_PORT` | `587` | |
-| `SYSTEM_SMTP_USERNAME` | | |
-| `SYSTEM_SMTP_PASSWORD` | | |
-| `SYSTEM_SMTP_FROM` | | e.g. `noreply@example.com` |
-| `SYSTEM_SMTP_TLS` | `"true"` | `"false"` = plain SMTP |
-| `SYSTEM_SMTP_BCC` | _(empty)_ | Added to every outgoing email |
-
-### 8.7 System Mailer Package
-
-New package: `internal/mailer/`
-
-```
-internal/mailer/
-  mailer.go      — Mailer struct; send(); SendAsync()
-  templates.go   — RenderXxx() HTML email helpers
-```
-
-`Mailer` fields mirror the `SYSTEM_SMTP_*` env vars. `SendAsync(to, subject, htmlBody)` spawns a goroutine; on error logs `[WARNING] system email to <to> failed: <err>`. If `SYSTEM_SMTP_HOST` is empty, `SendAsync` is a no-op.
-
-**HTML email design** (inline CSS only — email clients strip `<link>`):
-- White card on `#f8fafc` background
-- Conductor text header in `#38bdf8`
-- Body text `#1e293b`, muted text `#64748b`
-- Muted footer: "This is an automated message from Conductor. Do not reply."
-
-**Email catalogue:**
-
-| ID | Subject |
-|---|---|
-| `invite` | You've been invited to Conductor |
-| `password_reset` | Reset your Conductor password |
-| `account_disabled` | Your Conductor account has been disabled |
-| `account_enabled` | Your Conductor account has been re-enabled |
-| `2fa_removed` | Two-factor authentication removed |
-| `2fa_enabled` | Two-factor authentication enabled |
-| `password_changed_admin` | Your password has been changed |
-| `password_changed_reset` | Your password has been changed |
-
-### 8.8 Transactional Email Triggers
-
-| # | Handler | Trigger | Email ID | Recipient |
-|---|---|---|---|---|
-| 1 | `InviteGenerate` | Invite link created | `invite` | `recipient_email` form field (mandatory) |
-| 2 | `UserGenerateResetLink` | Reset link created | `password_reset` | Target user's username |
-| 3 | `UserToggleDisabled` | Account disabled | `account_disabled` | Target user's username |
-| 4 | `UserToggleDisabled` | Account enabled | `account_enabled` | Target user's username |
-| 5 | `UserRemove2FA` | Admin removes 2FA | `2fa_removed` | Target user's username |
-| 6 | `TwoFAVerify` (account.go) | User enables 2FA | `2fa_enabled` | Logged-in user's username |
-| 7 | `UserChangePassword` | Admin changes password | `password_changed_admin` | Target user's username |
-| 8 | `ResetPasswordSubmit` | Reset link redeemed | `password_changed_reset` | Username on the reset token |
-
-### 8.9 Implementation Order
-
-| Step | Work | Checkpoint |
-|---|---|---|
-| 1 | Add `TOTPEnabled bool` to `User`; update `GetByUsername` + `ListAll` SQL | `go build ./...` |
-| 2 | Add `ListPaged` to `UserStore` | `go build ./...` |
-| 3 | Remove `UserDelete` + `UserSetAdmin` handlers + routes | `go test ./...` |
-| 4 | Add `UserRemove2FA` handler + route | `go test ./...` |
-| 5 | Create `validation.go`; add `validateEmail` to `UserCreate`, `RegisterSubmit`, `InviteGenerate` | `go test ./...` |
-| 6 | Update `users.html`: remove buttons; add 2FA cell; search + pagination; "Email" label | `go test ./internal/web/...` |
-| 7 | Update `login.html`, `register.html`, `user_form.html`: Username → Email | `go test ./internal/web/...` |
-| 8 | Update invite form in `register.html`/`users.html`: mandatory `recipient_email` | `go test ./internal/web/...` |
-| 9 | Add `SYSTEM_SMTP_*` fields to `config.go` | `go build ./...` |
-| 10 | Create `internal/mailer/mailer.go` + `templates.go` | `go build ./...` |
-| 11 | Wire `*mailer.Mailer` into `handlers.New()` + `cmd/server/main.go` | `go build ./...` |
-| 12 | Email triggers: `InviteGenerate` (8.1) | `go test ./...` |
-| 13 | Email triggers: `UserGenerateResetLink`, `UserToggleDisabled`, `UserRemove2FA` (8.2–8.5) | `go test ./...` |
-| 14 | Email triggers: `TwoFAVerify`, `UserChangePassword`, `ResetPasswordSubmit` (8.6–8.8) | `go test ./...` |
-| 15 | Update `admin_settings.html`: SMTP status indicator + non-email username warning | `go test ./internal/web/...` |
-| 16 | Update `FEATURES.md` | — |
-
-### 8.10 Files Changed
-
-**New files:**
-
-| File | Purpose |
-|---|---|
-| `internal/mailer/mailer.go` | Mailer struct, `send`, `SendAsync` |
-| `internal/mailer/templates.go` | HTML email render helpers |
-| `internal/web/handlers/validation.go` | `validateEmail(s string) error` |
-
-**Modified files:**
-
-| File | Changes |
-|---|---|
-| `internal/config/config.go` | Add `SystemSMTP*` fields |
-| `internal/models/user.go` | Add `TOTPEnabled bool` |
-| `internal/models/store.go` | Update `GetByUsername`, `ListAll` (add `totp_enabled`); add `ListPaged` |
-| `internal/web/handlers/dashboard.go` | Accept `*mailer.Mailer` in `Handler`; update `handlers.New()` signature |
-| `internal/web/handlers/users.go` | Remove `UserDelete`, `UserSetAdmin`; add `UserRemove2FA`; call `validateEmail`; email triggers |
-| `internal/web/handlers/account.go` | Email trigger in `TwoFAVerify` |
-| `internal/web/handlers/register.go` | `validateEmail` in `RegisterSubmit`; mandatory `recipient_email` in `InviteGenerate` |
-| `internal/web/router.go` | Remove deleted routes; add `/remove-2fa` route |
-| `internal/web/templates/users.html` | Remove admin/delete buttons; 2FA cell; search + pagination; "Email" label |
-| `internal/web/templates/login.html` | "Username" → "Email" |
-| `internal/web/templates/register.html` | "Username" → "Email"; mandatory recipient email field |
-| `internal/web/templates/user_form.html` | "Username" → "Email" |
-| `internal/web/templates/admin_settings.html` | SMTP status indicator; non-email username warning |
-| `cmd/server/main.go` | Construct `*mailer.Mailer`; pass to `handlers.New()` |
-| `FEATURES.md` | Update status rows |

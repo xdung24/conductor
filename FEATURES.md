@@ -187,7 +187,8 @@ This document tracks which features are implemented, in progress, or planned.
 | User list: search + pagination | ✅ Done | Search by email substring; 10 items per page with Previous/Next controls |
 | System SMTP (transactional email) | ✅ Done | `SYSTEM_SMTP_*` env vars; fire-and-forget sending; HTML emails with plain-text fallback; BCC support |
 | Transactional emails | ✅ Done | Automated emails for: invite link, password reset, account disabled/enabled, 2FA removed/enabled, password changed by admin, password changed via reset link |
-
+| Notification badge | ⬜ Planned | Show number of new notification badge |
+| Push notification| ⬜ Planned | Push notification to user's browser |
 ---
 
 ## Status page features

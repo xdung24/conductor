@@ -105,10 +105,8 @@ func (h *Handler) RegisterSubmit(c *gin.Context) {
 		h.msched.StartForUser(username, db)
 	}
 
-	// Log the user in immediately after registration.
-	sessionToken := signToken(username, h.cfg.SecretKey)
-	c.SetCookie(sessionCookieName, sessionToken, 86400, "/", "", false, true)
-	c.Redirect(http.StatusFound, "/")
+	// Redirect to login page.
+	c.Redirect(http.StatusFound, "/login")
 }
 
 // registrationAllowed returns true when the request should be permitted to
