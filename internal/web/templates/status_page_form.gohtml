@@ -67,16 +67,18 @@
                 <span style="font-size:0.75rem; color:#64748b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;">Public URLs</span>
             </div>
             <input type="hidden" name="summary_uuid" id="summary_uuid" value="{{ .Page.SummaryUUID }}" />
-            {{ if and .Page.SummaryUUID .Page.Slug }}
+            {{ if .Page.Slug }}
             <div style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.75rem 0.9rem; display:flex; flex-direction:column; gap:0.6rem;">
                 <div>
                     <p style="font-size:0.75rem; color:#64748b; margin:0 0 0.2rem;">Status page</p>
-                    <code style="color:#6366f1; font-size:0.775rem; word-break:break-all;">/status/{{ .Page.SummaryUUID }}/{{ .Page.Slug }}</code>
+                    <code style="color:#6366f1; font-size:0.775rem; word-break:break-all;">/status/{{ .Page.Slug }}</code>
                 </div>
+                {{ if .Page.SummaryUUID }}
                 <div>
                     <p style="font-size:0.75rem; color:#64748b; margin:0 0 0.2rem;">JSON summary</p>
                     <code style="color:#6366f1; font-size:0.775rem; word-break:break-all;">/summary/{{ .Page.SummaryUUID }}</code>
                 </div>
+                {{ end }}
             </div>
             {{ else }}
             <p style="font-size:0.775rem; color:#64748b;">A unique URL will be assigned when you save.</p>

@@ -76,7 +76,8 @@ func (h *Handler) StatusPageCreate(c *gin.Context) {
 		return
 	}
 
-	// best-effort: register UUID in shared DB for public endpoint lookup
+	// best-effort: register slug and UUID in shared DB for public endpoint lookups
+	_ = h.users.RegisterStatusPageSlug(page.Slug, h.username(c))
 	_ = h.users.RegisterSummaryToken(page.SummaryUUID, h.username(c))
 	_ = spStore.SetMonitors(id, monitorIDs)
 	c.Redirect(http.StatusFound, "/status-pages")
@@ -130,7 +131,15 @@ func (h *Handler) StatusPageUpdate(c *gin.Context) {
 		})
 		return
 	}
-	// Synchronise the shared UUID index. best-effort — per-user DB is the source of truth.
+	// Synchronise the shared slug + UUID indexes. best-effort — per-user DB is the source of truth.
+	if existing.Slug != updated.Slug {
+		if existing.Slug != "" {
+			_ = h.users.UnregisterStatusPageSlug(existing.Slug)
+		}
+		if updated.Slug != "" {
+			_ = h.users.RegisterStatusPageSlug(updated.Slug, h.username(c))
+		}
+	}
 	if existing.SummaryUUID != updated.SummaryUUID {
 		if existing.SummaryUUID != "" {
 			_ = h.users.UnregisterSummaryToken(existing.SummaryUUID)
@@ -149,6 +158,9 @@ func (h *Handler) StatusPageDelete(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if page.Slug != "" {
+		_ = h.users.UnregisterStatusPageSlug(page.Slug)
+	}
 	if page.SummaryUUID != "" {
 		// best-effort: clean up shared index
 		_ = h.users.UnregisterSummaryToken(page.SummaryUUID)
@@ -166,18 +178,18 @@ const statusPageCacheTTL = 60 * time.Second
 // StatusPagePublic renders the unauthenticated public status page.
 // The rendered HTML is cached for statusPageCacheTTL to protect the DB from
 // repeated full-page loads (each page hit runs N×heartbeat queries).
-// Route: GET /status/:uuid/:slug  (slug is decorative; lookup is by UUID)
+// Route: GET /status/:slug
 func (h *Handler) StatusPagePublic(c *gin.Context) {
-	uuid := c.Param("uuid")
+	slug := c.Param("slug")
 
-	cacheKey := "page\x00" + uuid
+	cacheKey := "page\x00" + slug
 	if cached, hit := h.pageCache.get(cacheKey); hit {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", cached)
 		return
 	}
 
-	// Resolve UUID → username via the shared users DB.
-	username, err := h.users.LookupSummaryToken(uuid)
+	// Resolve slug → username via the shared users DB.
+	username, err := h.users.LookupStatusPageSlug(slug)
 	if err != nil || username == "" {
 		c.HTML(http.StatusNotFound, "error.gohtml", gin.H{"Error": "Status page not found"})
 		return
@@ -190,7 +202,7 @@ func (h *Handler) StatusPagePublic(c *gin.Context) {
 	}
 
 	spStore := models.NewStatusPageStore(db)
-	page, err := spStore.GetBySummaryUUID(uuid)
+	page, err := spStore.GetBySlug(slug)
 	if err != nil || page == nil {
 		c.HTML(http.StatusNotFound, "error.gohtml", gin.H{"Error": "Status page not found"})
 		return
@@ -238,7 +250,7 @@ func (h *Handler) StatusPagePublic(c *gin.Context) {
 		"Monitors":       monitors,
 		"AllOperational": allOperational && len(monitors) > 0,
 		"Now":            now.Format("2006-01-02 15:04:05 UTC"),
-		"UUID":           uuid,
+		"UUID":           page.SummaryUUID,
 	}
 
 	// Render into a buffer so we can cache the result.
@@ -255,9 +267,9 @@ func (h *Handler) StatusPagePublic(c *gin.Context) {
 
 // StatusPagePublicChartData is a public JSON endpoint that returns heartbeat
 // history for a monitor, but only if it belongs to the given status page.
-// Route: GET /status/:uuid/:slug/chart-data/:id  (slug is decorative; lookup is by UUID)
+// Route: GET /status/:slug/chart-data/:id
 func (h *Handler) StatusPagePublicChartData(c *gin.Context) {
-	uuid := c.Param("uuid")
+	slug := c.Param("slug")
 	idStr := c.Param("id")
 	monitorID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -265,8 +277,8 @@ func (h *Handler) StatusPagePublicChartData(c *gin.Context) {
 		return
 	}
 
-	// Resolve UUID → username via the shared users DB.
-	username, err := h.users.LookupSummaryToken(uuid)
+	// Resolve slug → username via the shared users DB.
+	username, err := h.users.LookupStatusPageSlug(slug)
 	if err != nil || username == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
@@ -280,7 +292,7 @@ func (h *Handler) StatusPagePublicChartData(c *gin.Context) {
 
 	// Verify the monitor is actually linked to this status page.
 	spStore := models.NewStatusPageStore(db)
-	page, err := spStore.GetBySummaryUUID(uuid)
+	page, err := spStore.GetBySlug(slug)
 	if err != nil || page == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
@@ -307,7 +319,7 @@ func (h *Handler) StatusPagePublicChartData(c *gin.Context) {
 
 	// Public callers get a cached response — protects the DB from flooding.
 	// Authenticated owners (MonitorChartData) bypass this endpoint entirely.
-	cacheKey := chartCacheKey(uuid, idStr, span)
+	cacheKey := chartCacheKey(slug, idStr, span)
 	if cached, hit := h.chartCache.get(cacheKey); hit {
 		c.Data(http.StatusOK, "application/json; charset=utf-8", cached)
 		return

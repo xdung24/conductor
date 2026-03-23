@@ -502,6 +502,40 @@ func (s *UserStore) UnregisterAllPushTokens(username string) error {
 	return err
 }
 
+// RegisterStatusPageSlug records a mapping from a status-page slug to its owning username.
+// Slugs must be globally unique across all users; the caller should validate uniqueness first.
+func (s *UserStore) RegisterStatusPageSlug(slug, username string) error {
+	_, err := s.db.ExecContext(context.Background(),
+		`INSERT INTO status_page_slugs (slug, username) VALUES (?, ?)
+		 ON CONFLICT(slug) DO UPDATE SET username=excluded.username`,
+		slug, username,
+	)
+	return err
+}
+
+// UnregisterStatusPageSlug removes the slug mapping from the shared users DB.
+func (s *UserStore) UnregisterStatusPageSlug(slug string) error {
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM status_page_slugs WHERE slug=?`, slug)
+	return err
+}
+
+// UnregisterAllStatusPageSlugs removes every slug that belongs to the given user.
+func (s *UserStore) UnregisterAllStatusPageSlugs(username string) error {
+	_, err := s.db.ExecContext(context.Background(), `DELETE FROM status_page_slugs WHERE username=?`, username)
+	return err
+}
+
+// LookupStatusPageSlug returns the username associated with the given slug.
+// Returns an empty string (and nil error) if the slug is not registered.
+func (s *UserStore) LookupStatusPageSlug(slug string) (string, error) {
+	var username string
+	err := s.db.QueryRowContext(context.Background(), `SELECT username FROM status_page_slugs WHERE slug=?`, slug).Scan(&username)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return username, err
+}
+
 // RegisterSummaryToken records a mapping from status-page summary UUID to username in the shared users DB.
 func (s *UserStore) RegisterSummaryToken(uuid, username string) error {
 	_, err := s.db.ExecContext(context.Background(),

@@ -193,9 +193,9 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 	// Push endpoint (unauthenticated — external services call this to signal UP).
 	r.GET("/push/:token", h.MonitorPush)
 
-	// Public status page (unauthenticated) — identified by UUID; slug is decorative
-	r.GET("/status/:uuid/:slug", publicRL, h.StatusPagePublic)
-	r.GET("/status/:uuid/:slug/chart-data/:id", publicRL, h.StatusPagePublicChartData)
+	// Public status page (unauthenticated) — identified by slug
+	r.GET("/status/:slug", publicRL, h.StatusPagePublic)
+	r.GET("/status/:slug/chart-data/:id", publicRL, h.StatusPagePublicChartData)
 
 	// Public JSON summary endpoint (unauthenticated, no rate limit — cache-backed).
 	// Enabled per-page via a UUID generated in the status page settings.

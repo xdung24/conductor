@@ -169,7 +169,6 @@
 
 <script>
 (function() {
-    var uuid = {{ .UUID | js }};
     var slug = {{ .Page.Slug | js }};
     var currentChartId = null;
     var currentChartSpan = '24h';
@@ -203,7 +202,7 @@
         document.getElementById('sp-chart-container').style.display = 'none';
         document.getElementById('sp-chart-error').style.display = 'none';
 
-        fetch('/status/' + uuid + '/' + slug + '/chart-data/' + id + '?since=' + span)
+        fetch('/status/' + slug + '/chart-data/' + id + '?since=' + span)
             .then(function(r) { return r.json(); })
             .then(function(data) { spRenderChart(data); })
             .catch(function() {

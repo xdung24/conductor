@@ -37,10 +37,10 @@
         <td style="font-weight:500;">{{ .Name }}</td>
         <td><code style="color:#94a3b8; font-size:0.8rem;">{{ .Slug }}</code></td>
         <td>
-            {{ if .SummaryUUID }}
-            <a href="/status/{{ .SummaryUUID }}/{{ .Slug }}" target="_blank"
+            {{ if .Slug }}
+            <a href="/status/{{ .Slug }}" target="_blank"
                style="font-size:0.8rem; color:#60a5fa; font-family:monospace;">
-                /status/{{ slice .SummaryUUID 0 8 }}&hellip;/{{ .Slug }}
+                /status/{{ .Slug }}
             </a>
             {{ else }}
             <span style="color:#64748b; font-size:0.8rem;">&#8212;</span>
@@ -49,8 +49,8 @@
         <td>
             <div style="display:flex; gap:0.4rem;">
                 <a href="/status-pages/{{ .ID }}/edit" class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">Edit</a>
-                {{ if .SummaryUUID }}
-                <a href="/status/{{ .SummaryUUID }}/{{ .Slug }}" target="_blank" class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">View</a>
+                {{ if .Slug }}
+                <a href="/status/{{ .Slug }}" target="_blank" class="btn btn-ghost" style="padding:0.3rem 0.6rem; font-size:0.8rem;">View</a>
                 {{ end }}
                 <form method="POST" action="/status-pages/{{ .ID }}/delete"
                       onsubmit="return confirm('Delete status page {{ .Name }}?')" style="display:inline;">
