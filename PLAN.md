@@ -289,7 +289,42 @@ POST to `api.globalping.io/v1/measurements`, poll for result.
 
 ## Phase 9 - Push notification & Notification badge
 - Notification badge to show number of new notification badge
-- Push notification to user's browser 
+- Push notification to user's browser
+
+
+## Phase 10 — Security Hardening
+
+### 10.1 Enforce SECRET_KEY Minimum Length
+- At startup (`cmd/server/main.go`), after loading config, check `len(cfg.SecretKey) < 32`; if so, log a fatal error and exit
+- Prevents weak or default keys being used in production
+
+### 10.2 Secure Session Cookie Flag
+- In `auth_token.go` (or wherever the session cookie is set), add `Secure: true` behind an env flag `SECURE_COOKIES` (default `false` for local dev, `true` recommended in production docs)
+- Document in README that running behind a TLS reverse proxy (Caddy/nginx) is required in production
+
+### 10.3 Session Expiry (Server-Side)
+- Include an `iat` (issued-at) Unix timestamp inside the HMAC-signed token payload
+- In `AuthRequired()` middleware, reject tokens where `now - iat > SESSION_MAX_AGE` (default 24h, configurable via env)
+- On session rejection, clear the cookie and redirect to login
+
+### 10.4 CSRF Protection
+- Generate a per-session CSRF token (random 32 bytes, base64-encoded) stored as a second `HttpOnly` cookie (`sm_csrf`)
+- All state-changing forms include a hidden `<input name="_csrf" value="...">` field populated from a template helper
+- POST/PUT/DELETE handlers verify the submitted `_csrf` field matches the cookie value before processing
+- GET-only handlers are exempt
+
+### 10.5 Rate Limiter Memory Leak Fix
+- The current `sync.Map`-based limiter never evicts stale IP entries
+- Add a background goroutine (started in `main.go`) that runs every 5 minutes and deletes entries not accessed in the last 15 minutes
+- Use a `lastSeen time.Time` field alongside the limiter state, protected by the existing `sync.Map` value struct
+
+### 10.6 HTTP Security Headers Middleware
+- Add a single Gin middleware in `internal/web/router.go` applied to all routes:
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:`
+  - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
 
 
 ## Key Files Reference
