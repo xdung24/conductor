@@ -77,7 +77,7 @@ func (h *Handler) StatusPageCreate(c *gin.Context) {
 	}
 
 	// best-effort: register slug and UUID in shared DB for public endpoint lookups
-	_ = h.users.RegisterStatusPageSlug(page.Slug, h.username(c))
+	_ = h.users.RegisterStatusPageSlug(page.Slug, h.username(c), page.Name)
 	_ = h.users.RegisterSummaryToken(page.SummaryUUID, h.username(c))
 	_ = spStore.SetMonitors(id, monitorIDs)
 	c.Redirect(http.StatusFound, "/status-pages")
@@ -137,8 +137,11 @@ func (h *Handler) StatusPageUpdate(c *gin.Context) {
 			_ = h.users.UnregisterStatusPageSlug(existing.Slug)
 		}
 		if updated.Slug != "" {
-			_ = h.users.RegisterStatusPageSlug(updated.Slug, h.username(c))
+			_ = h.users.RegisterStatusPageSlug(updated.Slug, h.username(c), updated.Name)
 		}
+	} else if updated.Slug != "" && existing.Name != updated.Name {
+		// Slug unchanged but name changed — keep the index entry current.
+		_ = h.users.RegisterStatusPageSlug(updated.Slug, h.username(c), updated.Name)
 	}
 	if existing.SummaryUUID != updated.SummaryUUID {
 		if existing.SummaryUUID != "" {

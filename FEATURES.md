@@ -73,7 +73,7 @@ This document tracks which features are implemented, in progress, or planned.
 | Notification providers: Webhook | ✅ Done | |
 | Notification providers: Telegram | ✅ Done | |
 | Notification providers: Email (SMTP) | ✅ Done | |
-| Public status page | ✅ Done | Read-only page at `/status/:username/:slug` showing selected monitors with 24h uptime, sparklines, and interactive latency/downtime chart |
+| Public status page | ✅ Done | Read-only page at `/status/:slug` (globally unique slug index in shared `users.db`) showing selected monitors with 24h uptime, sparklines, and interactive latency/downtime chart |
 | Maintenance windows | ✅ Done | Suppress alerts during scheduled downtime; per-monitor or global |
 | Tags / labels on monitors | ✅ Done | Color-coded labels; assign to monitors; displayed on dashboard |
 | Proxy management | ✅ Done | Shared proxy config referenced by monitors |
@@ -169,11 +169,11 @@ This document tracks which features are implemented, in progress, or planned.
 | Notification providers: Zoho Cliq | ⬜ Planned | |
 | Remote browser config | ⬜ Planned | Chromium endpoint for real-browser checks |
 | Cloudflare Tunnel integration | ⬜ Planned | Expose via cloudflared without open port |
-| Dark/light theme toggle | ✅ Done | User preference stored in `sm_theme` cookie; toggled from navbar |
+| Dark/light theme toggle | ✅ Done | User preference stored in `sm_theme` cookie; toggled from navbar and homepage; light-mode overrides for all button variants and page-title |
 | Latency sparkline charts | ✅ Done | Inline SVG polyline of last 50 checks on dashboard and public status page |
 | Interactive latency chart | ✅ Done | Modal chart with selectable time spans (1h/6h/24h/7d/30d); latency polyline + downtime band overlay; on dashboard (authenticated, realtime) and public status page (unauthenticated, 60 s TTL cache) |
 | Downtime events tracking | ✅ Done | `downtime_events` table records contiguous DOWN periods (started_at, ended_at, duration_s); written by scheduler on state transitions; queried by chart API to render downtime bands |
-| Chart JSON API | ✅ Done | `GET /monitors/:id/chart-data?since=` (authenticated, realtime) and `GET /status/:username/:slug/chart-data/:id?since=` (public, cached); both return `{"points":[…],"downtime":[…]}` — see **Embedding the Chart** section in README |
+| Chart JSON API | ✅ Done | `GET /monitors/:id/chart-data?since=` (authenticated, realtime) and `GET /status/:slug/chart-data/:id?since=` (public, cached); both return `{"points":[…],"downtime":[…]}` — see **Embedding the Chart** section in README |
 | Public chart cache | ✅ Done | Unauthenticated chart endpoint responses cached in-memory (60 s TTL, `sync.Map` + background eviction) to prevent DB flooding |
 | Multi-user support | ✅ Done | Per-user monitors/notifications in isolated SQLite DB files; shared `users.db` for auth + push token routing; `Registry` + `MultiScheduler` for per-user DB and scheduler lifecycle |
 | Import / export monitors | ✅ Done | Export a single monitor's config as JSON (`GET /monitors/:id/export`); import via file upload (`POST /monitors/import`) |
@@ -187,6 +187,8 @@ This document tracks which features are implemented, in progress, or planned.
 | User list: search + pagination | ✅ Done | Search by email substring; 10 items per page with Previous/Next controls |
 | System SMTP (transactional email) | ✅ Done | `SYSTEM_SMTP_*` env vars; fire-and-forget sending; HTML emails with plain-text fallback; BCC support |
 | Transactional emails | ✅ Done | Automated emails for: invite link, password reset, account disabled/enabled, 2FA removed/enabled, password changed by admin, password changed via reset link |
+| Favicon | ✅ Done | SVG favicon embedded from `internal/web/public/`; static files under `public/` served at root with correct content-type |
+| Homepage (landing page) | ✅ Done | Unauthenticated landing page at `/` showing app tagline, feature highlights, and a grid of all public status pages; authenticated visitors are redirected to `/monitors` |
 | Notification badge | ⬜ Planned | Show number of new notification badge |
 | Push notification| ⬜ Planned | Push notification to user's browser |
 ---

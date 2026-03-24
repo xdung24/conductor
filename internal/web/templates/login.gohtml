@@ -6,8 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login — Conductor</title>
     {{ template "styles" . }}
+    <script>
+    (function(){
+        var t=document.cookie.split(';').map(function(s){return s.trim();}).find(function(s){return s.startsWith('sm_theme=');});
+        if(t&&t.split('=')[1]==='light'){document.documentElement.setAttribute('data-theme','light');}
+    })();
+    </script>
 </head>
 <body>
+    <div style="position:fixed; top:0.75rem; left:1rem; right:1rem; display:flex; justify-content:space-between; align-items:center; z-index:10;">
+        <a href="/" style="font-size:0.875rem; color:#64748b; text-decoration:none;">&#8592; Home</a>
+        <button id="theme-btn" type="button" title="Toggle theme"
+                onclick="(function(){var d=document.documentElement;var isLight=d.getAttribute('data-theme')==='light';if(isLight){d.removeAttribute('data-theme');document.cookie='sm_theme=;path=/;max-age=-1';}else{d.setAttribute('data-theme','light');document.cookie='sm_theme=light;path=/;max-age=31536000;';}document.querySelector('#theme-btn').blur();})()"
+                style="background:none; border:1px solid #334155; border-radius:0.4rem; color:#94a3b8;
+                       cursor:pointer; font-size:0.875rem; padding:0.25rem 0.55rem; line-height:1;">
+            &#9788;
+        </button>
+    </div>
     <div style="max-width:400px; margin:4rem auto; padding:1rem;">
         <div style="text-align:center; margin-bottom:2rem;">
             <h1 style="font-size:1.5rem; font-weight:700; color:#f1f5f9;">&#9829; <span style="color:#38bdf8;">Service</span>Conductor</h1>

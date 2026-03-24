@@ -1,0 +1,1 @@
+ALTER TABLE status_page_slugs ADD COLUMN name TEXT NOT NULL DEFAULT '';

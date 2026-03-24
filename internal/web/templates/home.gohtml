@@ -1,0 +1,215 @@
+{{ define "home.gohtml" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ServiceConductor — Uptime Monitoring</title>
+    {{ template "styles" . }}
+    <style>
+        .home-nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .home-nav-brand { font-weight: 700; font-size: 1.1rem; color: #f1f5f9; text-decoration: none; }
+        .home-nav-brand span { color: #38bdf8; }
+        .home-nav-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+        [data-theme="light"] .home-nav { background: #ffffff; border-bottom-color: #e2e8f0; }
+        [data-theme="light"] .home-nav-brand { color: #0f172a; }
+
+        .hero {
+            text-align: center;
+            padding: 5rem 1rem 3.5rem;
+            max-width: 680px;
+            margin: 0 auto;
+        }
+        .hero-logo {
+            font-size: 3rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            color: #38bdf8;
+        }
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+        .hero h1 span { color: #38bdf8; }
+        .hero p {
+            font-size: 1.05rem;
+            color: #94a3b8;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+        [data-theme="light"] .hero h1 { color: #0f172a; }
+        [data-theme="light"] .hero p  { color: #475569; }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            max-width: 900px;
+            margin: 0 auto 3.5rem;
+            padding: 0 1rem;
+        }
+        .feature-item {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 1.25rem 1rem;
+            text-align: center;
+        }
+        .feature-item .fi-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .feature-item .fi-title { font-size: 0.875rem; font-weight: 600; color: #e2e8f0; }
+        .feature-item .fi-desc  { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+
+        [data-theme="light"] .feature-item { background: #ffffff; border-color: #e2e8f0; }
+        [data-theme="light"] .feature-item .fi-title { color: #0f172a; }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+        }
+        [data-theme="light"] .section-title { color: #0f172a; }
+
+        .pages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 0.75rem;
+        }
+        .page-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 1.1rem 1.25rem;
+            text-decoration: none;
+            display: block;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .page-card:hover {
+            border-color: #38bdf8;
+            background: #1e3a4f;
+            text-decoration: none;
+        }
+        .page-card-name {
+            font-weight: 600;
+            color: #f1f5f9;
+            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
+        }
+        .page-card-slug {
+            font-size: 0.78rem;
+            color: #64748b;
+        }
+        [data-theme="light"] .page-card { background: #ffffff; border-color: #e2e8f0; }
+        [data-theme="light"] .page-card:hover { background: #eff6ff; border-color: #3b82f6; }
+        [data-theme="light"] .page-card-name { color: #0f172a; }
+
+        .no-pages {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .home-footer {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #475569;
+            font-size: 0.8rem;
+            border-top: 1px solid #1e293b;
+            margin-top: 3rem;
+        }
+        [data-theme="light"] .home-footer { border-top-color: #e2e8f0; }
+    </style>
+    <script>
+    (function(){
+        var t=document.cookie.split(';').map(function(s){return s.trim();}).find(function(s){return s.startsWith('sm_theme=');});
+        if(t&&t.split('=')[1]==='light'){document.documentElement.setAttribute('data-theme','light');}
+    })();
+    </script>
+</head>
+<body>
+
+<nav class="home-nav">
+    <a class="home-nav-brand" href="/">&#x2665; <span>Service</span>Conductor</a>
+    <div class="home-nav-actions">
+        <button id="theme-btn" type="button" title="Toggle theme"
+                onclick="(function(){var d=document.documentElement;var isLight=d.getAttribute('data-theme')==='light';if(isLight){d.removeAttribute('data-theme');document.cookie='sm_theme=;path=/;max-age=-1';}else{d.setAttribute('data-theme','light');document.cookie='sm_theme=light;path=/;max-age=31536000;';}document.querySelector('#theme-btn').blur();})()"
+                style="background:none; border:1px solid #334155; border-radius:0.4rem; color:#94a3b8;
+                       cursor:pointer; font-size:0.875rem; padding:0.25rem 0.55rem; line-height:1;">
+            &#9788;
+        </button>
+        <a href="/docs" style="color:#94a3b8; font-size:0.875rem;">Documents</a>
+        <a href="/login" class="btn btn-primary">Login</a>
+    </div>
+</nav>
+
+<div class="hero">
+    <div class="hero-logo">&#x2665;</div>
+    <h1>Keep your services <span>up and running</span></h1>
+    <p>ServiceConductor is a self-hosted uptime monitor. Track HTTP endpoints, TCP ports, DNS records,
+       databases, and more. Get notified the moment something goes wrong.</p>
+    <a href="/login" class="btn btn-primary" style="font-size:1rem; padding:0.7rem 2rem;">Get started &rarr;</a>
+</div>
+
+<div class="feature-grid">
+    <div class="feature-item">
+        <div class="fi-icon">&#128200;</div>
+        <div class="fi-title">10+ monitor types</div>
+        <div class="fi-desc">HTTP, TCP, Ping, DNS, SMTP, MySQL, PostgreSQL, Redis, MongoDB &amp; more</div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon">&#128276;</div>
+        <div class="fi-title">Instant alerts</div>
+        <div class="fi-desc">Slack, Discord, Telegram, Email, ntfy, webhooks and many more channels</div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon">&#128203;</div>
+        <div class="fi-title">Status pages</div>
+        <div class="fi-desc">Shareable public pages showing the real-time health of your services</div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon">&#128274;</div>
+        <div class="fi-title">Self-hosted &amp; private</div>
+        <div class="fi-desc">Your data stays on your server. No third-party cloud required</div>
+    </div>
+</div>
+
+<div class="container">
+    {{ if .StatusPages }}
+    <div class="section-title">Public Status Pages</div>
+    <div class="pages-grid">
+        {{ range .StatusPages }}
+        <a class="page-card" href="/status/{{ .Slug | urlquery }}">
+            <div class="page-card-name">{{ .Name | html }}</div>
+            <div class="page-card-slug">/status/{{ .Slug }}</div>
+        </a>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="no-pages">No public status pages published yet.</div>
+    {{ end }}
+</div>
+
+<div class="home-footer">
+    Powered by <strong>ServiceConductor</strong> &mdash;
+    <a href="https://github.com/xdung24/conductor" target="_blank" rel="noopener noreferrer">open source</a>
+</div>
+
+</body>
+</html>
+{{ end }}

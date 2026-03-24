@@ -217,11 +217,13 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 	// Enabled per-page via a UUID generated in the status page settings.
 	r.GET("/summary/:uuid", h.StatusPagePublicSummary)
 
+	// Home page (public — redirects to /monitors when already authenticated)
+	r.GET("/", h.HomePage)
+
 	// Dashboard (protected)
 	auth := r.Group("/")
 	auth.Use(h.AuthRequired())
 	{
-		auth.GET("/", func(c *gin.Context) { c.Redirect(http.StatusFound, "/monitors") })
 		auth.GET("/monitors", h.Dashboard)
 
 		// Monitors

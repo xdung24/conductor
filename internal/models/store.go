@@ -502,15 +502,42 @@ func (s *UserStore) UnregisterAllPushTokens(username string) error {
 	return err
 }
 
-// RegisterStatusPageSlug records a mapping from a status-page slug to its owning username.
+// StatusPageSlugEntry is a lightweight record from the shared status_page_slugs index.
+type StatusPageSlugEntry struct {
+	Slug     string
+	Name     string
+	Username string
+}
+
+// RegisterStatusPageSlug records a mapping from a status-page slug to its owning username and name.
 // Slugs must be globally unique across all users; the caller should validate uniqueness first.
-func (s *UserStore) RegisterStatusPageSlug(slug, username string) error {
+func (s *UserStore) RegisterStatusPageSlug(slug, username, name string) error {
 	_, err := s.db.ExecContext(context.Background(),
-		`INSERT INTO status_page_slugs (slug, username) VALUES (?, ?)
-		 ON CONFLICT(slug) DO UPDATE SET username=excluded.username`,
-		slug, username,
+		`INSERT INTO status_page_slugs (slug, username, name) VALUES (?, ?, ?)
+		 ON CONFLICT(slug) DO UPDATE SET username=excluded.username, name=excluded.name`,
+		slug, username, name,
 	)
 	return err
+}
+
+// ListAllStatusPageSlugs returns all public status-page entries ordered by name.
+func (s *UserStore) ListAllStatusPageSlugs() ([]StatusPageSlugEntry, error) {
+	rows, err := s.db.QueryContext(context.Background(),
+		`SELECT slug, COALESCE(name,''), username FROM status_page_slugs ORDER BY name, slug`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []StatusPageSlugEntry
+	for rows.Next() {
+		var e StatusPageSlugEntry
+		if err := rows.Scan(&e.Slug, &e.Name, &e.Username); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
 }
 
 // UnregisterStatusPageSlug removes the slug mapping from the shared users DB.
