@@ -9,6 +9,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,17 +22,19 @@ func (h *Handler) MonitorNew(c *gin.Context) {
 	allTags, _ := h.tagStore(c).List()
 	allDockerHosts, _ := h.dockerHostStore(c).List()
 	allProxies, _ := h.proxyStore(c).List()
+	allRemoteBrowsers, _ := h.remoteBrowserStore(c).List()
 	c.HTML(http.StatusOK, "monitor_form.gohtml", h.pageData(c, gin.H{
-		"Monitor":        &models.Monitor{IntervalSeconds: 60, TimeoutSeconds: 30, Retries: 1, NotifyOnFailure: true, NotifyOnSuccess: true},
-		"IsNew":          true,
-		"Error":          "",
-		"AllNotifs":      allNotifs,
-		"LinkedNotifIDs": map[int64]bool{},
-		"NotifSummaries": notifSummaryMap(allNotifs),
-		"AllTags":        allTags,
-		"LinkedTagIDs":   map[int64]bool{},
-		"AllDockerHosts": allDockerHosts,
-		"AllProxies":     allProxies,
+		"Monitor":           &models.Monitor{IntervalSeconds: 60, TimeoutSeconds: 30, Retries: 1, NotifyOnFailure: true, NotifyOnSuccess: true},
+		"IsNew":             true,
+		"Error":             "",
+		"AllNotifs":         allNotifs,
+		"LinkedNotifIDs":    map[int64]bool{},
+		"NotifSummaries":    notifSummaryMap(allNotifs),
+		"AllTags":           allTags,
+		"LinkedTagIDs":      map[int64]bool{},
+		"AllDockerHosts":    allDockerHosts,
+		"AllProxies":        allProxies,
+		"AllRemoteBrowsers": allRemoteBrowsers,
 	}))
 }
 
@@ -43,13 +46,15 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 		allTags, _ := h.tagStore(c).List()
 		allDockerHosts, _ := h.dockerHostStore(c).List()
 		allProxies, _ := h.proxyStore(c).List()
+		allRemoteBrowsers, _ := h.remoteBrowserStore(c).List()
 		c.HTML(http.StatusBadRequest, "monitor_form.gohtml", gin.H{
 			"Monitor": m, "IsNew": true, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
-			"AllDockerHosts": allDockerHosts,
-			"AllProxies":     allProxies,
+			"AllDockerHosts":    allDockerHosts,
+			"AllProxies":        allProxies,
+			"AllRemoteBrowsers": allRemoteBrowsers,
 		})
 		return
 	}
@@ -65,13 +70,15 @@ func (h *Handler) MonitorCreate(c *gin.Context) {
 		allTags, _ := h.tagStore(c).List()
 		allDockerHosts, _ := h.dockerHostStore(c).List()
 		allProxies, _ := h.proxyStore(c).List()
+		allRemoteBrowsers, _ := h.remoteBrowserStore(c).List()
 		c.HTML(http.StatusInternalServerError, "monitor_form.gohtml", gin.H{
 			"Monitor": m, "IsNew": true, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
-			"AllDockerHosts": allDockerHosts,
-			"AllProxies":     allProxies,
+			"AllDockerHosts":    allDockerHosts,
+			"AllProxies":        allProxies,
+			"AllRemoteBrowsers": allRemoteBrowsers,
 		})
 		return
 	}
@@ -132,17 +139,19 @@ func (h *Handler) MonitorEdit(c *gin.Context) {
 	}
 	allDockerHosts, _ := h.dockerHostStore(c).List()
 	allProxies, _ := h.proxyStore(c).List()
+	allRemoteBrowsers, _ := h.remoteBrowserStore(c).List()
 	c.HTML(http.StatusOK, "monitor_form.gohtml", h.pageData(c, gin.H{
-		"Monitor":        m,
-		"IsNew":          false,
-		"Error":          "",
-		"AllNotifs":      allNotifs,
-		"LinkedNotifIDs": linkedIDs,
-		"NotifSummaries": notifSummaryMap(allNotifs),
-		"AllTags":        allTags,
-		"LinkedTagIDs":   linkedTagIDs,
-		"AllDockerHosts": allDockerHosts,
-		"AllProxies":     allProxies,
+		"Monitor":           m,
+		"IsNew":             false,
+		"Error":             "",
+		"AllNotifs":         allNotifs,
+		"LinkedNotifIDs":    linkedIDs,
+		"NotifSummaries":    notifSummaryMap(allNotifs),
+		"AllTags":           allTags,
+		"LinkedTagIDs":      linkedTagIDs,
+		"AllDockerHosts":    allDockerHosts,
+		"AllProxies":        allProxies,
+		"AllRemoteBrowsers": allRemoteBrowsers,
 	}))
 }
 
@@ -170,13 +179,15 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 		}
 		allDockerHosts, _ := h.dockerHostStore(c).List()
 		allProxies, _ := h.proxyStore(c).List()
+		allRemoteBrowsers, _ := h.remoteBrowserStore(c).List()
 		c.HTML(http.StatusBadRequest, "monitor_form.gohtml", gin.H{
 			"Monitor": m, "IsNew": false, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": linkedIDs,
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": linkedTagIDs,
-			"AllDockerHosts": allDockerHosts,
-			"AllProxies":     allProxies,
+			"AllDockerHosts":    allDockerHosts,
+			"AllProxies":        allProxies,
+			"AllRemoteBrowsers": allRemoteBrowsers,
 		})
 		return
 	}
@@ -201,13 +212,15 @@ func (h *Handler) MonitorUpdate(c *gin.Context) {
 		allTags, _ := h.tagStore(c).List()
 		allDockerHosts, _ := h.dockerHostStore(c).List()
 		allProxies, _ := h.proxyStore(c).List()
+		allRemoteBrowsers, _ := h.remoteBrowserStore(c).List()
 		c.HTML(http.StatusInternalServerError, "monitor_form.gohtml", gin.H{
 			"Monitor": updated, "IsNew": false, "Error": err.Error(),
 			"AllNotifs": allNotifs, "LinkedNotifIDs": map[int64]bool{},
 			"NotifSummaries": notifSummaryMap(allNotifs),
 			"AllTags":        allTags, "LinkedTagIDs": map[int64]bool{},
-			"AllDockerHosts": allDockerHosts,
-			"AllProxies":     allProxies,
+			"AllDockerHosts":    allDockerHosts,
+			"AllProxies":        allProxies,
+			"AllRemoteBrowsers": allRemoteBrowsers,
 		})
 		return
 	}
@@ -257,10 +270,13 @@ func (h *Handler) MonitorExport(c *gin.Context) {
 		SMTPIgnoreTLS        bool               `json:"smtp_ignore_tls,omitempty"`
 		SMTPUsername         string             `json:"smtp_username,omitempty"`
 		// SMTPPassword and HTTPPassword intentionally excluded from exports.
-		DBQuery         string `json:"db_query,omitempty"`
-		NotifyOnFailure bool   `json:"notify_on_failure"`
-		NotifyOnSuccess bool   `json:"notify_on_success"`
-		NotifyBodyChars int    `json:"notify_body_chars,omitempty"`
+		DBQuery              string `json:"db_query,omitempty"`
+		NotifyOnFailure      bool   `json:"notify_on_failure"`
+		NotifyOnSuccess      bool   `json:"notify_on_success"`
+		NotifyBodyChars      int    `json:"notify_body_chars,omitempty"`
+		GameDigGame          string `json:"gamedig_game,omitempty"`
+		GameDigGivenPortOnly bool   `json:"gamedig_given_port_only,omitempty"`
+		RemoteBrowserID      int64  `json:"remote_browser_id,omitempty"`
 	}
 	doc := exportDoc{
 		Schema:               "conductor/monitor/v1",
@@ -295,6 +311,9 @@ func (h *Handler) MonitorExport(c *gin.Context) {
 		NotifyOnFailure:      m.NotifyOnFailure,
 		NotifyOnSuccess:      m.NotifyOnSuccess,
 		NotifyBodyChars:      m.NotifyBodyChars,
+		GameDigGame:          m.GameDigGame,
+		GameDigGivenPortOnly: m.GameDigGivenPortOnly,
+		RemoteBrowserID:      m.RemoteBrowserID,
 	}
 
 	data, err := json.MarshalIndent(doc, "", "  ")
@@ -357,6 +376,9 @@ func (h *Handler) MonitorImport(c *gin.Context) {
 		NotifyOnFailure      bool               `json:"notify_on_failure"`
 		NotifyOnSuccess      bool               `json:"notify_on_success"`
 		NotifyBodyChars      int                `json:"notify_body_chars"`
+		GameDigGame          string             `json:"gamedig_game"`
+		GameDigGivenPortOnly bool               `json:"gamedig_given_port_only"`
+		RemoteBrowserID      int64              `json:"remote_browser_id"`
 	}
 
 	var doc importDoc
@@ -411,6 +433,9 @@ func (h *Handler) MonitorImport(c *gin.Context) {
 		NotifyOnFailure:      doc.NotifyOnFailure,
 		NotifyOnSuccess:      doc.NotifyOnSuccess,
 		NotifyBodyChars:      doc.NotifyBodyChars,
+		GameDigGame:          doc.GameDigGame,
+		GameDigGivenPortOnly: doc.GameDigGivenPortOnly,
+		RemoteBrowserID:      doc.RemoteBrowserID,
 		// SMTPPassword is not exported and must be re-entered after import.
 	}
 
@@ -713,6 +738,14 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 	radiusSecret := c.PostForm("radius_secret")
 	radiusCalledStationID := c.PostForm("radius_called_station_id")
 
+	// GameDig and Browser
+	gamedigGame := strings.TrimSpace(c.DefaultPostForm("gamedig_game", "a2s"))
+	gamedigGivenPortOnly := c.PostForm("gamedig_given_port_only") == "on"
+	remoteBrowserID, _ := strconv.ParseInt(c.DefaultPostForm("remote_browser_id", "0"), 10, 64)
+	if remoteBrowserID < 0 {
+		remoteBrowserID = 0
+	}
+
 	// Proxy
 	proxyID, _ := strconv.ParseInt(c.DefaultPostForm("proxy_id", "0"), 10, 64)
 	if proxyID < 0 {
@@ -778,7 +811,10 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		KafkaTopic:            kafkaTopic,
 		RadiusSecret:          radiusSecret,
 		RadiusCalledStationID: radiusCalledStationID,
+		GameDigGame:           gamedigGame,
+		GameDigGivenPortOnly:  gamedigGivenPortOnly,
 		ProxyID:               proxyID,
+		RemoteBrowserID:       remoteBrowserID,
 	}
 	if name == "" {
 		return m, &formError{"name is required"}
@@ -788,6 +824,7 @@ func monitorFromForm(c *gin.Context) (*models.Monitor, error) {
 		models.MonitorTypeManual:     true,
 		models.MonitorTypeGroup:      true,
 		models.MonitorTypeSystemType: true,
+		models.MonitorTypeDocker:     true,
 	}
 	if monURL == "" && !noURLTypes[monType] {
 		return m, &formError{"url is required"}

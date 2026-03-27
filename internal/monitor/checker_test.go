@@ -16,6 +16,9 @@ func TestCheckerFor(t *testing.T) {
 		{models.MonitorTypeTCP, "*monitor.TCPChecker"},
 		{models.MonitorTypePing, "*monitor.PingChecker"},
 		{models.MonitorTypeHTTP, "*monitor.HTTPChecker"},
+		{models.MonitorTypeSteam, "*monitor.SteamChecker"},
+		{models.MonitorTypeGameDig, "*monitor.GameDigChecker"},
+		{models.MonitorTypeBrowser, "*monitor.BrowserChecker"},
 		{models.MonitorTypePush, "*monitor.HTTPChecker"}, // push falls to default
 		{"unknown", "*monitor.HTTPChecker"},              // unknown type falls to default
 	}

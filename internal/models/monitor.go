@@ -31,6 +31,9 @@ const (
 	MonitorTypeSIPOptions MonitorType = "sip_options"
 	MonitorTypeKafka      MonitorType = "kafka"
 	MonitorTypeRadius     MonitorType = "radius"
+	MonitorTypeSteam      MonitorType = "steam"
+	MonitorTypeGameDig    MonitorType = "gamedig"
+	MonitorTypeBrowser    MonitorType = "browser"
 )
 
 // Monitor represents a monitored target.
@@ -121,8 +124,15 @@ type Monitor struct {
 	RadiusSecret          string `db:"radius_secret"`            // RADIUS shared secret
 	RadiusCalledStationID string `db:"radius_called_station_id"` // optional Called-Station-Id attribute value
 
+	// Game server monitor fields (gamedig/steam)
+	GameDigGame          string `db:"gamedig_game"`            // protocol family: a2s or quake3
+	GameDigGivenPortOnly bool   `db:"gamedig_given_port_only"` // reserved for parity with Kuma behavior
+
 	// Proxy settings (HTTP only)
 	ProxyID int64 `db:"proxy_id"` // FK to proxies.id; 0 = no proxy
+
+	// Remote browser for Chromium-based checks
+	RemoteBrowserID int64 `db:"remote_browser_id"` // FK to remote_browsers.id; 0 = use local Chrome
 
 	// TLS certificate expiry alert (HTTP only)
 	CertExpiryAlertDays int `db:"cert_expiry_alert_days"` // return DOWN when cert expires within N days; 0 = disabled

@@ -32,12 +32,12 @@ This document tracks which features are implemented, in progress, or planned.
 | gRPC Keyword | ✅ Done | Standard `grpc.health.v1.Health/Check`; optional keyword assertion on status string; TLS support |
 | SIP Options | ✅ Done | Raw UDP SIP OPTIONS request; checks SIP/2.0 response |
 | Radius | ✅ Done | Access-Request; Accept or Reject = UP; shared secret + optional Called-Station-Id |
-| Steam | ⬜ Planned | Steam Web API query |
-| GameDig | ⬜ Planned | Game server query protocol |
+| Steam | ✅ Done | UDP A2S_INFO query |
+| GameDig | ✅ Done | A2S + Quake 3 UDP subsets |
 | Tailscale Ping | ✅ Done | `tailscale ping --c 1` subprocess; checks for pong/DERP |
 | Globalping | ✅ Done | Globalping API distributed ping check; polls for result |
 | Kafka Producer | ✅ Done | Produce a test message to a configurable topic; broker reachability + write check |
-| Real Browser (Chromium) | ⬜ Planned | Headless browser via chromedp |
+| Real Browser (Chromium) | ✅ Done | Headless browser via chromedp |
 | System Service | ✅ Done | Windows SCM (`sc.exe query`) / systemd (`systemctl is-active`) / launchd (`launchctl list`) |
 | Group / Manual | ✅ Done | Group: status derived from children; Manual: static UP/DOWN flag |
 
@@ -167,8 +167,8 @@ This document tracks which features are implemented, in progress, or planned.
 | Notification providers: WPush | ⬜ Planned | |
 | Notification providers: YZJ | ✅ Done | Yunji via webhook |
 | Notification providers: Zoho Cliq | ⬜ Planned | |
-| Remote browser config | ⬜ Planned | Chromium endpoint for real-browser checks |
-| Cloudflare Tunnel integration | ⬜ Planned | Expose via cloudflared without open port |
+| Remote browser config | ✅ Done | Chromium endpoint for real-browser checks |
+| Cloudflare Tunnel integration | ✅ Done | Expose via cloudflared without open port |
 | Dark/light theme toggle | ✅ Done | User preference stored in `sm_theme` cookie; toggled from navbar and homepage; light-mode overrides for all button variants and page-title |
 | Latency sparkline charts | ✅ Done | Inline SVG polyline of last 50 checks on dashboard and public status page |
 | Interactive latency chart | ✅ Done | Modal chart with selectable time spans (1h/6h/24h/7d/30d); latency polyline + downtime band overlay; on dashboard (authenticated, realtime) and public status page (unauthenticated, 60 s TTL cache) |

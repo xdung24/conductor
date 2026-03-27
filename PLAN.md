@@ -287,9 +287,14 @@ POST to `api.globalping.io/v1/measurements`, poll for result.
 - **System SMTP** — configure via `SYSTEM_SMTP_*` env vars (host, port, username, password, from, TLS, BCC). Empty host = disabled.
 - **Transactional emails** — fire-and-forget `SendAsync`; HTML with plain-text fallback. Triggered on: invite created, password reset, account enabled/disabled, 2FA enabled/removed, password changed.
 
+---
+
+
 ## Phase 9 - Push notification & Notification badge
 - Notification badge to show number of new notification badge
 - Push notification to user's browser
+
+---
 
 
 ## Phase 10 — Security Hardening

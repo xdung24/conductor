@@ -1,0 +1,27 @@
+services:
+  conductor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: conductor
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      LISTEN_ADDR: ":3001"
+      DATA_DIR: "/app/data"
+      SECRET_KEY: "${SECRET_KEY:-change-me-in-production}"
+    volumes:
+      - conductor_data:/app/data
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: conductor-cloudflared
+    restart: unless-stopped
+    depends_on:
+      - conductor
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+
+volumes:
+  conductor_data:

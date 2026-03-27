@@ -5,6 +5,7 @@ A production-ready, self-hosted uptime monitoring tool written in Go.
 ## Features
 
 - HTTP / HTTPS, TCP, Ping, DNS, SMTP, Push/Heartbeat monitor types
+- Steam (A2S), GameDig (A2S/Quake), and Real Browser (Chromium) monitor types
 - HTTP extended checks: keyword match, JSON path, XPath, custom headers/body, bearer auth, redirect control, TLS certificate expiry alerts
 - Database monitors: MySQL/MariaDB, PostgreSQL, MongoDB, Redis
 - Server-side rendered dashboard (no JavaScript build step)
@@ -25,6 +26,7 @@ A production-ready, self-hosted uptime monitoring tool written in Go.
 - User management admin panel — add, promote/demote, delete, change passwords
 - Graceful shutdown
 - Docker + Docker Compose support
+- Cloudflare Tunnel support via optional `cloudflared` compose service
 - Single compiled binary — no runtime dependencies
 
 ## Quick Start
@@ -61,6 +63,12 @@ Each user's data is isolated in their own SQLite file. The shared `users.db` hol
 
 ```bash
 docker compose up --build
+```
+
+To run behind Cloudflare Tunnel, start the optional profile and provide your tunnel token:
+
+```bash
+CLOUDFLARE_TUNNEL_TOKEN=... docker compose --profile tunnel up --build
 ```
 
 ## Project Structure

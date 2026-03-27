@@ -93,6 +93,13 @@ func migrate(cfg *config.Config) (*sql.DB, *database.Registry, error) {
 		}
 		return p.URL
 	}
+	monitor.RemoteBrowserLookup = func(db *sql.DB, id int64) string {
+		rb, err := models.NewRemoteBrowserStore(db).Get(id)
+		if err != nil || rb == nil {
+			return ""
+		}
+		return rb.EndpointURL
+	}
 
 	return usersDB, registry, nil
 }

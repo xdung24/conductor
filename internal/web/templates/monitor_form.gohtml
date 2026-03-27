@@ -67,12 +67,15 @@
                     <option value="snmp"        {{ if eq .Monitor.Type "snmp"        }}selected{{ end }}>SNMP</option>
                     <option value="grpc"        {{ if eq .Monitor.Type "grpc"        }}selected{{ end }}>gRPC</option>
                     <option value="radius"      {{ if eq .Monitor.Type "radius"      }}selected{{ end }}>RADIUS</option>
+                    <option value="steam"       {{ if eq .Monitor.Type "steam"       }}selected{{ end }}>Steam Game Server (A2S)</option>
+                    <option value="gamedig"     {{ if eq .Monitor.Type "gamedig"     }}selected{{ end }}>GameDig (A2S/Quake)</option>
                 </optgroup>
                 <optgroup label="Infrastructure">
                     <option value="docker"         {{ if eq .Monitor.Type "docker"         }}selected{{ end }}>Docker Container</option>
                     <option value="system_service" {{ if eq .Monitor.Type "system_service" }}selected{{ end }}>System Service</option>
                     <option value="tailscale"      {{ if eq .Monitor.Type "tailscale"      }}selected{{ end }}>Tailscale Ping</option>
                     <option value="globalping"     {{ if eq .Monitor.Type "globalping"     }}selected{{ end }}>Globalping</option>
+                    <option value="browser"        {{ if eq .Monitor.Type "browser"        }}selected{{ end }}>Real Browser (Chromium)</option>
                 </optgroup>
                 <optgroup label="Other">
                     <option value="group"  {{ if eq .Monitor.Type "group"  }}selected{{ end }}>Group</option>
@@ -583,6 +586,56 @@
             </div>
         </div>
 
+        <!-- Steam fields -->
+        <div id="steam-fields" style="display:{{ if eq .Monitor.Type "steam" }}block{{ else }}none{{ end }};">
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                URL format: <code>host:27015</code> (default port 27015). Uses UDP A2S_INFO query.
+            </small>
+        </div>
+
+        <!-- GameDig fields -->
+        <div id="gamedig-fields" style="display:{{ if eq .Monitor.Type "gamedig" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="gamedig_game">Game Protocol</label>
+                <select class="form-control" id="gamedig_game" name="gamedig_game">
+                    <option value="a2s" {{ if or (eq .Monitor.GameDigGame "a2s") (or (eq .Monitor.GameDigGame "") (eq .Monitor.GameDigGame "steam")) }}selected{{ end }}>A2S / Steam Source</option>
+                    <option value="quake3" {{ if or (eq .Monitor.GameDigGame "quake3") (eq .Monitor.GameDigGame "quake") }}selected{{ end }}>Quake 3</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:#94a3b8;">
+                    <input type="checkbox" name="gamedig_given_port_only" value="on"
+                           {{ if .Monitor.GameDigGivenPortOnly }}checked{{ end }} />
+                    Given port only (compatibility option)
+                </label>
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                A2S default port: <code>27015</code>. Quake 3 default port: <code>27960</code>.
+            </small>
+        </div>
+
+        <!-- Browser fields -->
+        <div id="browser-fields" style="display:{{ if eq .Monitor.Type "browser" }}block{{ else }}none{{ end }};">
+            <div class="form-group">
+                <label for="remote_browser_id">Remote Browser <span style="color:#64748b; font-weight:400;">(optional)</span></label>
+                <select class="form-control" id="remote_browser_id" name="remote_browser_id">
+                    <option value="0">Local Chromium (launch on server)</option>
+                    {{ range .AllRemoteBrowsers }}
+                    <option value="{{ .ID }}" {{ if eq $.Monitor.RemoteBrowserID .ID }}selected{{ end }}>
+                        {{ .Name }} ({{ .EndpointURL }})
+                    </option>
+                    {{ end }}
+                </select>
+                <small style="color:#64748b; font-size:0.775rem; display:block; margin-top:0.25rem;">
+                    Configure remote endpoints at <a href="/remote-browsers" style="color:#38bdf8;">Remote Browsers</a>.
+                    When none is selected, Conductor launches a local Chromium instance.
+                </small>
+            </div>
+            <small style="color:#64748b; font-size:0.775rem; display:block; margin-bottom:0.75rem;">
+                Browser checks support HTTP keyword matching against rendered HTML.
+            </small>
+        </div>
+
         <!-- Manual fields -->
         {{ $manualUp := eq .Monitor.ManualStatus 1 }}
         <div id="manual-fields" style="display:{{ if eq .Monitor.Type "manual" }}block{{ else }}none{{ end }};">
@@ -788,6 +841,9 @@ function toggleTypeFields() {
     document.getElementById('manual-fields').style.display         = (t === 'manual')         ? 'block' : 'none';
     document.getElementById('kafka-fields').style.display          = (t === 'kafka')          ? 'block' : 'none';
     document.getElementById('radius-fields').style.display         = (t === 'radius')         ? 'block' : 'none';
+    document.getElementById('steam-fields').style.display          = (t === 'steam')          ? 'block' : 'none';
+    document.getElementById('gamedig-fields').style.display        = (t === 'gamedig')        ? 'block' : 'none';
+    document.getElementById('browser-fields').style.display        = (t === 'browser')        ? 'block' : 'none';
     // push-fields
     var pf = document.getElementById('push-fields');
     if (pf) pf.style.display = (t === 'push') ? 'block' : 'none';
@@ -828,6 +884,12 @@ function toggleTypeFields() {
         urlInput.placeholder = 'host:5060  (SIP host and port)';
     } else if (t === 'radius') {
         urlInput.placeholder = 'host:1812  (RADIUS server address)';
+    } else if (t === 'steam') {
+        urlInput.placeholder = 'host:27015  (Steam game server)';
+    } else if (t === 'gamedig') {
+        urlInput.placeholder = 'host:port  (game server address)';
+    } else if (t === 'browser') {
+        urlInput.placeholder = 'https://example.com  (rendered browser check)';
     } else if (t === 'tailscale') {
         urlInput.placeholder = 'Tailscale hostname or IP, e.g. my-device';
     } else if (t === 'globalping') {

@@ -35,6 +35,14 @@ docker compose up
 
 The dashboard will be available at `http://localhost:3001`.
 
+To expose the app through Cloudflare Tunnel, run:
+
+```
+CLOUDFLARE_TUNNEL_TOKEN=... docker compose --profile tunnel up
+```
+
+This starts an additional `cloudflared` service and does not require opening inbound ports publicly.
+
 ### Option 3 — Cloud / managed hosting
 
 If you are using a hosted version of ServiceConductor, your administrator will give you the URL and either create an account for you or send you an invite link to sign up.
@@ -156,6 +164,9 @@ ServiceConductor attempts to connect (and ping) the database — UP means the co
 | **System Service** | Checks the status of a system service (e.g. a systemd unit on Linux) |
 | **Tailscale** | Checks that a peer device on your Tailscale network is reachable |
 | **Globalping** | Uses the Globalping public network to run checks from multiple locations around the world |
+| **Steam Game Server** | Queries a Steam/Source server over UDP using A2S_INFO |
+| **GameDig** | Queries game servers using A2S or Quake 3 UDP protocol subsets |
+| **Real Browser (Chromium)** | Opens the page in Chromium (local or remote DevTools endpoint) and checks rendered output |
 | **Group** | Combines several monitors into one — the group is UP only when all members are UP |
 | **Manual** | Status is set by hand — no automatic checks run |
 

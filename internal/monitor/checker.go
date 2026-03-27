@@ -39,6 +39,10 @@ var DockerHostLookup func(db *sql.DB, id int64) (socketPath, httpURL string)
 // per-user database that stores the proxies table. Returns "" when not found.
 var ProxyLookup func(db *sql.DB, id int64) string
 
+// RemoteBrowserLookup resolves a remote browser config ID to a DevTools
+// endpoint URL (ws://... or wss://...). Returns "" when not found.
+var RemoteBrowserLookup func(db *sql.DB, id int64) string
+
 // Cache holds optional pre-created network resources that are reused across
 // repeated checks of the same monitor to reduce per-check connection overhead.
 // The zero value is safe: each checker falls back to creating a fresh connection.
@@ -118,6 +122,16 @@ func checkerFor(db *sql.DB, cache Cache, m *models.Monitor) Checker {
 		return &KafkaChecker{}
 	case models.MonitorTypeRadius:
 		return &RadiusChecker{}
+	case models.MonitorTypeSteam:
+		return &SteamChecker{}
+	case models.MonitorTypeGameDig:
+		return &GameDigChecker{}
+	case models.MonitorTypeBrowser:
+		bc := &BrowserChecker{}
+		if RemoteBrowserLookup != nil && db != nil && m.RemoteBrowserID > 0 {
+			bc.RemoteEndpoint = RemoteBrowserLookup(db, m.RemoteBrowserID)
+		}
+		return bc
 	default:
 		return &HTTPChecker{client: cache.HTTPClient}
 	}

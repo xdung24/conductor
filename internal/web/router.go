@@ -289,6 +289,14 @@ func NewRouter(usersDB *sql.DB, registry *database.Registry, msched *scheduler.M
 		auth.POST("/proxies/:id", h.ProxyUpdate)
 		auth.POST("/proxies/:id/delete", h.ProxyDelete)
 
+		// Remote Browsers
+		auth.GET("/remote-browsers", h.RemoteBrowserList)
+		auth.GET("/remote-browsers/new", h.RemoteBrowserNew)
+		auth.POST("/remote-browsers", h.RemoteBrowserCreate)
+		auth.GET("/remote-browsers/:id/edit", h.RemoteBrowserEdit)
+		auth.POST("/remote-browsers/:id", h.RemoteBrowserUpdate)
+		auth.POST("/remote-browsers/:id/delete", h.RemoteBrowserDelete)
+
 		// API Keys
 		auth.GET("/api-keys", h.APIKeyList)
 		auth.POST("/api-keys", h.APIKeyCreate)
